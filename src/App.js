@@ -3,6 +3,10 @@ import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-r
 import { useWallet } from '@solana/wallet-adapter-react';
 import io from 'socket.io-client';
 import { sendTransactionWithMemo } from './solanaTransactions';
+import DOMPurify from 'dompurify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import './styles.css'; // Assurez-vous que le fichier styles.css est bien configuré
 
 const socket = io('http://localhost:5000');
 
@@ -98,7 +102,7 @@ const App = () => {
       </div>
 
       {/* Partie droite */}
-      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ textAlign: 'center' }}>Derniers Messages</h2>
         <div style={{
           flex: 1,
@@ -106,16 +110,13 @@ const App = () => {
           padding: '10px',
           backgroundColor: '#222',
           color: 'white',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          overflow: 'hidden' // Empêcher le scroll
+          overflowY: 'auto', // Ajoutez un défilement vertical si nécessaire
         }}>
           {messages.map((msg, index) => (
-            <div key={index} style={{ marginBottom: '10px' }}>
-              <p>{msg.message}</p>
+            <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333' }}>
+              <p>{DOMPurify.sanitize(msg.message)}</p>
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
-                Voir sur Solscan
+                <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
             </div>
           ))}
