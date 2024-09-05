@@ -14,14 +14,21 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "buffer": "^6.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
     "styled-components": "^6.1.13",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "craco start",
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "craco start",
+    "server": "node server.js",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject"
@@ -45,6 +52,7 @@
     ]
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "webpack-cli": "^5.1.4"
   }
 }

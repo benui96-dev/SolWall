@@ -2,7 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { WalletModalProvider, WalletMultiButton, WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { sendTransactionWithMemo, getRecentMessages } from './solanaTransactions';
+import io from 'socket.io-client';
+import { sendTransactionWithMemo } from './solanaTransactions';
+
+// Configurer Socket.IO
+const socket = io('http://localhost:5000'); // Remplacez par l'URL de votre serveur
 
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
@@ -10,15 +14,14 @@ const App = () => {
   const [memoText, setMemoText] = useState('');
 
   useEffect(() => {
-    // Récupérer les messages en temps réel
-    const fetchMessages = async () => {
-      const recentMessages = await getRecentMessages();
-      setMessages(recentMessages);
-    };
+    // Écouter les messages en temps réel
+    socket.on('message', (message) => {
+      setMessages((prevMessages) => [message, ...prevMessages]);
+    });
 
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 10000); // Mettre à jour toutes les 10 secondes
-    return () => clearInterval(interval);
+    return () => {
+      socket.off('message');
+    };
   }, []);
 
   const handleSendTransaction = async () => {
@@ -26,6 +29,14 @@ const App = () => {
 
     try {
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, memoText);
+
+      // Envoyer le message au serveur
+      socket.emit('newMessage', {
+        message: memoText,
+        signature: signature,
+        solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
+      });
+
       alert(`Transaction envoyée: https://solscan.io/tx/${signature}?cluster=testnet`);
       setMemoText(''); // Réinitialiser le champ texte après l'envoi
     } catch (error) {

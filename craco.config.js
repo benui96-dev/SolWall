@@ -9,7 +9,8 @@ module.exports = {
 		http: false,
 		https: false,
 		zlib: false,
-		url: false
+		url: false,
+    buffer: false
         // Ajoutez d'autres modules à exclure si nécessaire
       };
 
