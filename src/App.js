@@ -1,87 +1,94 @@
 // src/App.js
-import React from 'react';
-import { WalletMultiButton, WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
+import React, { useState, useEffect } from 'react';
+import { WalletModalProvider, WalletMultiButton, WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
-import styled from 'styled-components';
-
-const AppContainer = styled.div`
-  display: flex;
-  height: 100vh;
-  background-color: black;
-  color: white;
-  align-items: center;
-  justify-content: center;
-  font-family: Arial, sans-serif;
-`;
-
-const LeftPane = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 50%;
-  border-right: 2px solid gray;
-  padding: 20px;
-`;
-
-const Title = styled.h1`
-  font-size: 48px;
-  margin-bottom: 20px;
-`;
-
-const WalletInfo = styled.div`
-  margin-top: 20px;
-  font-size: 18px;
-`;
-
-const RightPane = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 50%;
-  padding: 20px;
-`;
-
-const SocialLinks = styled.div`
-  margin-top: 40px;
-  display: flex;
-  gap: 15px;
-`;
-
-const SocialLink = styled.a`
-  color: white;
-  text-decoration: none;
-  font-size: 20px;
-`;
+import { sendTransactionWithMemo, getRecentMessages } from './solanaTransactions';
 
 const App = () => {
-  const { publicKey } = useWallet(); // Récupère les informations du wallet connecté
+  const { publicKey, connected, sendTransaction } = useWallet();
+  const [messages, setMessages] = useState([]);
+  const [memoText, setMemoText] = useState('');
+
+  useEffect(() => {
+    // Récupérer les messages en temps réel
+    const fetchMessages = async () => {
+      const recentMessages = await getRecentMessages();
+      setMessages(recentMessages);
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 10000); // Mettre à jour toutes les 10 secondes
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSendTransaction = async () => {
+    if (!connected || !memoText) return;
+
+    try {
+      const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, memoText);
+      alert(`Transaction envoyée: https://solscan.io/tx/${signature}?cluster=testnet`);
+      setMemoText(''); // Réinitialiser le champ texte après l'envoi
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la transaction:', error);
+    }
+  };
 
   return (
-    <AppContainer>
-      <LeftPane>
-        <Title>SolWall</Title>
-        <WalletMultiButton />
-        {publicKey && (
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'black', color: 'white' }}>
+      {/* Partie gauche */}
+      <div style={{ width: '50%', padding: '20px', borderRight: '2px solid white' }}>
+        <h1 style={{ textAlign: 'center' }}>SolWall</h1>
+        <img src="/robot.svg" alt="Logo" style={{ display: 'block', margin: '20px auto', width: '100px' }} />
+        <WalletModalProvider>
+          <WalletMultiButton />
+          {connected && <WalletDisconnectButton />}
+        </WalletModalProvider>
+
+        {connected && (
           <>
-            <WalletInfo>
-              <p>ID du wallet : {publicKey.toBase58()}</p>
-            </WalletInfo>
-            <WalletDisconnectButton />
+            <p>Wallet ID: {publicKey.toBase58()}</p>
+            <textarea
+              value={memoText}
+              onChange={(e) => setMemoText(e.target.value)}
+              maxLength="100"
+              placeholder="Écrivez un message"
+              style={{ width: '100%', marginBottom: '10px', height: '100px' }}
+            />
+            <button
+              onClick={handleSendTransaction}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#00bfff',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Envoyer le message
+            </button>
+            <div style={{ marginTop: '20px' }}>
+              <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', textAlign: 'center' }}>Twitter</a>
+              <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', textAlign: 'center' }}>Discord</a>
+              <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', textAlign: 'center' }}>GitHub</a>
+            </div>
           </>
         )}
-        <SocialLinks>
-          <SocialLink href="https://twitter.com" target="_blank">Twitter</SocialLink>
-          <SocialLink href="https://discord.com" target="_blank">Discord</SocialLink>
-          <SocialLink href="https://github.com" target="_blank">GitHub</SocialLink>
-        </SocialLinks>
-      </LeftPane>
-      <RightPane>
-        {/* Contenu supplémentaire ou placeholder pour la partie droite */}
-        <p>Bienvenue dans votre application Solana !</p>
-      </RightPane>
-    </AppContainer>
+      </div>
+
+      {/* Partie droite */}
+      <div style={{ width: '50%', padding: '20px', overflowY: 'scroll' }}>
+        <h2>Derniers Messages</h2>
+        {messages.map((msg, index) => (
+          <div key={index} style={{ border: '1px solid white', padding: '10px', marginBottom: '10px' }}>
+            <p>{msg.message}</p>
+            <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
+              Voir sur Solscan
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 
