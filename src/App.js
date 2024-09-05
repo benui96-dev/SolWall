@@ -1,12 +1,10 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
-import { WalletModalProvider, WalletMultiButton, WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
+import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
 import io from 'socket.io-client';
 import { sendTransactionWithMemo } from './solanaTransactions';
 
-// Configurer Socket.IO
-const socket = io('http://localhost:5000'); // Remplacez par l'URL de votre serveur
+const socket = io('http://localhost:5000');
 
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
@@ -14,7 +12,6 @@ const App = () => {
   const [memoText, setMemoText] = useState('');
 
   useEffect(() => {
-    // Écouter les messages en temps réel
     socket.on('message', (message) => {
       setMessages((prevMessages) => [message, ...prevMessages]);
     });
@@ -30,7 +27,6 @@ const App = () => {
     try {
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, memoText);
 
-      // Envoyer le message au serveur
       socket.emit('newMessage', {
         message: memoText,
         signature: signature,
@@ -38,66 +34,92 @@ const App = () => {
       });
 
       alert(`Transaction envoyée: https://solscan.io/tx/${signature}?cluster=testnet`);
-      setMemoText(''); // Réinitialiser le champ texte après l'envoi
+      setMemoText('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la transaction:', error);
     }
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'black', color: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', backgroundColor: 'black', color: 'white', overflow: 'hidden' }}>
       {/* Partie gauche */}
-      <div style={{ width: '50%', padding: '20px', borderRight: '2px solid white' }}>
-        <h1 style={{ textAlign: 'center' }}>SolWall</h1>
-        <img src="/robot.svg" alt="Logo" style={{ display: 'block', margin: '20px auto', width: '100px' }} />
-        <WalletModalProvider>
-          <WalletMultiButton />
-          {connected && <WalletDisconnectButton />}
-        </WalletModalProvider>
+      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <h1 style={{ fontSize: '2em' }}>SolWall</h1>
+          <img src="/robot.svg" alt="Logo" style={{ width: '100px', margin: '20px auto', display: 'block' }} />
+          <br /> {/* Retour à la ligne après le logo */}
+          <WalletModalProvider>
+            <WalletMultiButton style={{ width: '100%', marginBottom: '10px' }} />
+          </WalletModalProvider>
+        </div>
 
         {connected && (
           <>
-            <p>Wallet ID: {publicKey.toBase58()}</p>
+            <p style={{ textAlign: 'center', marginBottom: '10px' }}>Wallet ID: {publicKey.toBase58()}</p>
             <textarea
               value={memoText}
               onChange={(e) => setMemoText(e.target.value)}
               maxLength="100"
               placeholder="Écrivez un message"
-              style={{ width: '100%', marginBottom: '10px', height: '100px' }}
+              style={{
+                width: '100%',
+                marginBottom: '10px',
+                height: '100px',
+                borderRadius: '5px',
+                padding: '10px',
+                backgroundColor: '#333',
+                color: 'white',
+                border: '1px solid #555',
+              }}
             />
             <button
               onClick={handleSendTransaction}
               style={{
-                padding: '10px 20px',
+                padding: '10px',
                 backgroundColor: '#00bfff',
                 color: 'white',
                 border: 'none',
                 cursor: 'pointer',
-                width: '100%',
+                width: '100%', // Largeur à 100%
+                borderRadius: '5px',
               }}
             >
               Envoyer le message
             </button>
-            <div style={{ marginTop: '20px' }}>
-              <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', textAlign: 'center' }}>Twitter</a>
-              <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', textAlign: 'center' }}>Discord</a>
-              <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', textAlign: 'center' }}>GitHub</a>
-            </div>
           </>
         )}
+
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <p>Suivez-nous :</p>
+          <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', marginBottom: '5px' }}>Twitter</a>
+          <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', marginBottom: '5px' }}>Discord</a>
+          <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>GitHub</a>
+        </div>
       </div>
 
       {/* Partie droite */}
-      <div style={{ width: '50%', padding: '20px', overflowY: 'scroll' }}>
-        <h2>Derniers Messages</h2>
-        {messages.map((msg, index) => (
-          <div key={index} style={{ border: '1px solid white', padding: '10px', marginBottom: '10px' }}>
-            <p>{msg.message}</p>
-            <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
-              Voir sur Solscan
-            </a>
-          </div>
-        ))}
+      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <h2 style={{ textAlign: 'center' }}>Derniers Messages</h2>
+        <div style={{
+          flex: 1,
+          borderRadius: '5px',
+          padding: '10px',
+          backgroundColor: '#222',
+          color: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          overflow: 'hidden' // Empêcher le scroll
+        }}>
+          {messages.map((msg, index) => (
+            <div key={index} style={{ marginBottom: '10px' }}>
+              <p>{msg.message}</p>
+              <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
+                Voir sur Solscan
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
