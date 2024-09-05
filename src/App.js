@@ -6,6 +6,8 @@ import { sendTransactionWithMemo } from './solanaTransactions';
 import DOMPurify from 'dompurify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import './styles.css'; // Assurez-vous que le fichier styles.css est bien configuré
 
 const socket = io('http://localhost:5000');
@@ -13,7 +15,7 @@ const socket = io('http://localhost:5000');
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
-  const [memoText, setMemoText] = useState('');
+  const [editorData, setEditorData] = useState('');
 
   useEffect(() => {
     socket.on('message', (message) => {
@@ -26,19 +28,19 @@ const App = () => {
   }, []);
 
   const handleSendTransaction = async () => {
-    if (!connected || !memoText) return;
+    if (!connected || !editorData) return;
 
     try {
-      const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, memoText);
+      const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, editorData);
 
       socket.emit('newMessage', {
-        message: memoText,
+        message: editorData,
         signature: signature,
         solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
       });
 
       alert(`Transaction envoyée: https://solscan.io/tx/${signature}?cluster=testnet`);
-      setMemoText('');
+      setEditorData('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la transaction:', error);
     }
@@ -60,22 +62,43 @@ const App = () => {
         {connected && (
           <>
             <p style={{ textAlign: 'center', marginBottom: '10px' }}>Wallet ID: {publicKey.toBase58()}</p>
-            <textarea
-              value={memoText}
-              onChange={(e) => setMemoText(e.target.value)}
-              maxLength="100"
-              placeholder="Écrivez un message"
-              style={{
-                width: '100%',
-                marginBottom: '10px',
-                height: '100px',
-                borderRadius: '5px',
-                padding: '10px',
-                backgroundColor: '#333',
-                color: 'white',
-                border: '1px solid #555',
-              }}
-            />
+            <div style={{ marginBottom: '10px' }}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={{
+                  toolbar: [
+                    'bold',
+                    'italic',
+                    'underline',
+                    'link',
+                    'bulletedList',
+                    'numberedList',
+                    'blockQuote',
+                    'undo',
+                    'redo',
+                    'fontSize',
+                    'fontFamily',
+                    'fontColor',
+                    'fontBackgroundColor',
+                    'alignment',
+                    'highlight',
+                    'emoji'
+                  ],
+                  // Assurez-vous que les plugins sont inclus
+                }}
+                data={editorData}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setEditorData(data);
+                }}
+                style={{
+                  height: '200px',
+                  borderRadius: '5px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                }}
+              />
+            </div>
             <button
               onClick={handleSendTransaction}
               style={{
@@ -114,7 +137,7 @@ const App = () => {
         }}>
           {messages.map((msg, index) => (
             <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333' }}>
-              <p>{DOMPurify.sanitize(msg.message)}</p>
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
