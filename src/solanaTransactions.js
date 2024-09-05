@@ -23,14 +23,15 @@ export const sendTransactionWithMemo = async (wallet, memoText) => {
   }
 
   const transaction = new Transaction();
-  const burnAmount = BigInt(1 * 10 ** TOKEN_DECIMALS); // Conversion en BigInt
 
+  // Remplacer BigInt par des entiers normaux
+  const burnAmount = Math.pow(10, TOKEN_DECIMALS); // Assurez-vous que TOKEN_DECIMALS est défini correctement
   transaction.add(
     createBurnInstruction(
       tokenAccountPubkey,
       TOKEN_MINT_ADDRESS,
       publicKey,
-      burnAmount,
+      burnAmount, // Assurez-vous que le montant est sous une forme correcte
       [],
       TOKEN_PROGRAM_ID
     )
