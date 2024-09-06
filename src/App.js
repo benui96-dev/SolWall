@@ -49,7 +49,7 @@ const App = () => {
   }, []);
 
   const handleSendTransaction = async () => {
-    if (!connected || !editorData) return;
+    if (!connected || !editorData || editorData.length > 100) return;
 
     try {
       // Vérifiez le solde lorsque l'utilisateur clique sur le bouton
@@ -58,7 +58,7 @@ const App = () => {
       const isSufficient = balance >= burnAmount;
 
       if (!isSufficient) {
-        alert('Solde insuffisant pour envoyer le message.');
+        console.error('Solde insuffisant pour envoyer le message.');
         return;
       }
 
@@ -81,11 +81,17 @@ const App = () => {
 
       socket.emit('newMessage', newMessage);
 
-      alert(`Transaction envoyée: https://solscan.io/tx/${signature}?cluster=testnet`);
       setEditorData('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la transaction:', error);
     }
+  };
+
+  const handleEditorChange = (event, editor) => {
+    const data = editor.getData();
+    const textContent = data.replace(/<[^>]*>/g, ''); // Retirer les balises HTML
+    setEditorData(data);
+    setCanSend(textContent.length <= 100);
   };
 
   return (
@@ -119,26 +125,24 @@ const App = () => {
                   ],
                 }}
                 data={editorData}
-                onChange={(event, editor) => {
-                  const data = editor.getData();
-                  setEditorData(data);
-                }}
+                onChange={handleEditorChange}
                 style={{
                   height: '200px',
                   borderRadius: '5px',
                   backgroundColor: '#333',
                 }}
               />
+              <p>{editorData.replace(/<[^>]*>/g, '').length} / 100 caractères</p> {/* Afficher le nombre de caractères restants */}
             </div>
             <button
               onClick={handleSendTransaction}
-              disabled={!connected || !editorData.trim()} // Désactive le bouton si non connecté ou texte vide
+              disabled={!connected || !canSend} // Désactive le bouton si non connecté ou texte dépasse 100 caractères
               style={{
                 padding: '10px',
                 backgroundColor: '#00bfff',
                 color: 'white',
                 border: 'none',
-                cursor: connected && editorData.trim() ? 'pointer' : 'not-allowed',
+                cursor: connected && canSend ? 'pointer' : 'not-allowed',
                 width: '100%', // Largeur à 100%
                 borderRadius: '5px',
               }}
