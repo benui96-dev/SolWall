@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
 import io from 'socket.io-client';
@@ -22,7 +22,7 @@ const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
   const [editorData, setEditorData] = useState('');
-  const [editorText, setEditorText] = useState('');
+  const messagesEndRef = useRef(null); // Référence pour le défilement automatique
 
   useEffect(() => {
     // Charger les messages depuis le serveur
@@ -30,7 +30,7 @@ const App = () => {
       try {
         const response = await fetch('http://localhost:5000/messages');
         const data = await response.json();
-        setMessages(data);
+        setMessages(data.reverse()); // Inverser l'ordre des messages pour que les plus récents soient en haut
       } catch (error) {
         console.error('Erreur lors de la récupération des messages:', error);
       }
@@ -43,7 +43,7 @@ const App = () => {
       setMessages((prevMessages) => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
-          return [message, ...prevMessages];
+          return [message, ...prevMessages]; // Ajouter le nouveau message en haut
         }
         return prevMessages;
       });
@@ -88,7 +88,6 @@ const App = () => {
       socket.emit('newMessage', newMessage);
 
       setEditorData('');
-      setEditorText('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la transaction:', error);
     }
@@ -96,9 +95,9 @@ const App = () => {
 
   const handleEditorChange = (event, editor) => {
     const data = editor.getData();
-    const text = data.replace(/<[^>]*>/g, ''); // Extrait le texte brut
-    setEditorText(text.substring(0, 100)); // Limiter le texte à 100 caractères
-    setEditorData(data);
+    if (data.length <= 100) {
+      setEditorData(data);
+    }
   };
 
   return (
@@ -139,17 +138,16 @@ const App = () => {
                   backgroundColor: '#333',
                 }}
               />
-              <p>{editorText.length} / 100 caractères</p> {/* Afficher le nombre de caractères restants */}
             </div>
             <button
               onClick={handleSendTransaction}
-              disabled={!connected || editorText.length > 100} // Désactive le bouton si le texte dépasse 100 caractères
+              disabled={!connected || editorData.trim().length > 100} // Désactiver le bouton si le texte dépasse 100 caractères
               style={{
                 padding: '10px',
                 backgroundColor: '#00bfff',
                 color: 'white',
                 border: 'none',
-                cursor: connected && editorText.length <= 100 ? 'pointer' : 'not-allowed',
+                cursor: connected && editorData.trim().length <= 100 ? 'pointer' : 'not-allowed',
                 width: '100%', // Largeur à 100%
                 borderRadius: '5px',
               }}
@@ -168,7 +166,7 @@ const App = () => {
       </div>
 
       {/* Partie droite */}
-      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column-reverse' }}>
         <h2 style={{ textAlign: 'center' }}>Derniers Messages</h2>
         <div style={{
           flex: 1,
@@ -179,13 +177,14 @@ const App = () => {
           overflowY: 'auto', // Ajoutez un défilement vertical si nécessaire
         }}>
           {messages.map((msg, index) => (
-            <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-              <div style={{ flex: 1, marginRight: '10px' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} />
+            <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333' }}>
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
             </div>
           ))}
+          <div ref={messagesEndRef} /> {/* Référence pour faire défiler vers le bas */}
         </div>
       </div>
     </div>
