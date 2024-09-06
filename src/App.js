@@ -33,7 +33,14 @@ const App = () => {
     fetchMessages();
 
     socket.on('message', (message) => {
-      setMessages((prevMessages) => [message, ...prevMessages]);
+      // Ajoutez le message seulement s'il n'existe pas déjà dans la liste
+      setMessages((prevMessages) => {
+        const exists = prevMessages.some(msg => msg.signature === message.signature);
+        if (!exists) {
+          return [message, ...prevMessages];
+        }
+        return prevMessages;
+      });
     });
 
     return () => {
