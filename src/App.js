@@ -19,6 +19,19 @@ const App = () => {
   const [canSend, setCanSend] = useState(false); // État pour contrôler l'activation du bouton
 
   useEffect(() => {
+    // Charger les messages depuis le serveur
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/messages');
+        const data = await response.json();
+        setMessages(data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des messages:', error);
+      }
+    };
+
+    fetchMessages();
+
     socket.on('message', (message) => {
       setMessages((prevMessages) => [message, ...prevMessages]);
     });
@@ -47,11 +60,22 @@ const App = () => {
     try {
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, editorData);
 
-      socket.emit('newMessage', {
+      const newMessage = {
         message: editorData,
         signature: signature,
         solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
+      };
+
+      // Envoyer le message au serveur
+      await fetch('http://localhost:5000/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newMessage),
       });
+
+      socket.emit('newMessage', newMessage);
 
       alert(`Transaction envoyée: https://solscan.io/tx/${signature}?cluster=testnet`);
       setEditorData('');
