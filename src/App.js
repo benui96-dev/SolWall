@@ -11,7 +11,6 @@ import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import './styles.css'; // Assurez-vous que le fichier styles.css est bien configuré
 
 const socket = io('http://localhost:5000');
-const TOKEN_DECIMALS = parseInt(process.env.REACT_APP_TOKEN_DECIMALS, 10);
 
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
@@ -42,23 +41,20 @@ const App = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const checkBalance = async () => {
-      if (connected && publicKey) {
-        const balance = await getTokenBalance(publicKey);
-        const burnAmount = 1; // Remplacez par la valeur réelle de burnAmount
-        const isSufficient = balance >= burnAmount;
-        setCanSend(isSufficient && editorData.trim() !== ''); // Activer si le solde est suffisant et le texte n'est pas vide
-      }
-    };
-
-    checkBalance();
-  }, [connected, publicKey, editorData]);
-
   const handleSendTransaction = async () => {
     if (!connected || !editorData) return;
 
     try {
+      // Vérifiez le solde lorsque l'utilisateur clique sur le bouton
+      const balance = await getTokenBalance(publicKey);
+      const burnAmount = 1; // Remplacez par la valeur réelle de burnAmount
+      const isSufficient = balance >= burnAmount;
+
+      if (!isSufficient) {
+        alert('Solde insuffisant pour envoyer le message.');
+        return;
+      }
+
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, editorData);
 
       const newMessage = {
@@ -114,7 +110,6 @@ const App = () => {
                     'fontColor',
                     'emoji'
                   ],
-                  // Assurez-vous que les plugins sont inclus
                 }}
                 data={editorData}
                 onChange={(event, editor) => {
@@ -125,19 +120,18 @@ const App = () => {
                   height: '200px',
                   borderRadius: '5px',
                   backgroundColor: '#333',
-                  color: 'black',
                 }}
               />
             </div>
             <button
               onClick={handleSendTransaction}
-              disabled={!canSend} // Désactive le bouton si canSend est false
+              disabled={!connected || !editorData.trim()} // Désactive le bouton si non connecté ou texte vide
               style={{
                 padding: '10px',
                 backgroundColor: '#00bfff',
                 color: 'white',
                 border: 'none',
-                cursor: canSend ? 'pointer' : 'not-allowed',
+                cursor: connected && editorData.trim() ? 'pointer' : 'not-allowed',
                 width: '100%', // Largeur à 100%
                 borderRadius: '5px',
               }}
