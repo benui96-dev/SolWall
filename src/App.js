@@ -39,7 +39,7 @@ const App = () => {
     fetchMessages();
 
     socket.on('message', (message) => {
-      // Ajoutez le message seulement s'il n'existe pas déjà dans la liste
+      // Ajouter le message seulement s'il n'existe pas déjà dans la liste
       setMessages((prevMessages) => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
@@ -167,7 +167,7 @@ const App = () => {
 
       {/* Partie droite */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column-reverse' }}>
-        <h2 style={{ textAlign: 'center' }}>Derniers Messages</h2>
+        <h2 style={{ textAlign: 'center', fontSize: '1.5em', marginBottom: '10px' }}>Derniers Messages</h2>
         <div style={{
           flex: 1,
           borderRadius: '5px',
@@ -177,9 +177,9 @@ const App = () => {
           overflowY: 'auto', // Ajoutez un défilement vertical si nécessaire
         }}>
           {messages.map((msg, index) => (
-            <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333' }}>
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} />
-              <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
+            <div key={index} style={{ marginBottom: '5px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} style={{ flex: 1 }} />
+              <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', marginLeft: '10px', fontSize: '0.8em' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
             </div>
