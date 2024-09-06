@@ -11,6 +11,7 @@ import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import './styles.css'; // Assurez-vous que le fichier styles.css est bien configuré
 
 const socket = io('http://localhost:5000');
+const TOKEN_DECIMALS = parseInt(process.env.REACT_APP_TOKEN_DECIMALS, 10);
 
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
@@ -107,19 +108,10 @@ const App = () => {
                   toolbar: [
                     'bold',
                     'italic',
-                    'underline',
                     'link',
-                    'bulletedList',
-                    'numberedList',
-                    'blockQuote',
                     'undo',
                     'redo',
-                    'fontSize',
-                    'fontFamily',
                     'fontColor',
-                    'fontBackgroundColor',
-                    'alignment',
-                    'highlight',
                     'emoji'
                   ],
                   // Assurez-vous que les plugins sont inclus
@@ -133,7 +125,7 @@ const App = () => {
                   height: '200px',
                   borderRadius: '5px',
                   backgroundColor: '#333',
-                  color: 'white',
+                  color: 'black',
                 }}
               />
             </div>
