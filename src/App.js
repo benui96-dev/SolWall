@@ -12,6 +12,12 @@ import './styles.css'; // Assurez-vous que le fichier styles.css est bien config
 
 const socket = io('http://localhost:5000');
 
+// Fonction pour convertir les URLs en liens cliquables
+const convertUrlsToLinks = (text) => {
+  const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%?=~_|])/ig;
+  return text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+};
+
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
@@ -65,7 +71,7 @@ const App = () => {
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, editorData);
 
       const newMessage = {
-        message: editorData,
+        message: convertUrlsToLinks(editorData), // Convertir les URLs en liens cliquables
         signature: signature,
         solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
       };
