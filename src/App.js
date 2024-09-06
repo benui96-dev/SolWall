@@ -16,7 +16,7 @@ const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
   const [editorData, setEditorData] = useState('');
-  const [canSend, setCanSend] = useState(false); // État pour contrôler l'activation du bouton
+  const [editorText, setEditorText] = useState('');
 
   useEffect(() => {
     // Charger les messages depuis le serveur
@@ -49,7 +49,7 @@ const App = () => {
   }, []);
 
   const handleSendTransaction = async () => {
-    if (!connected || !editorData || editorData.length > 100) return;
+    if (!connected || !editorData) return;
 
     try {
       // Vérifiez le solde lorsque l'utilisateur clique sur le bouton
@@ -82,6 +82,7 @@ const App = () => {
       socket.emit('newMessage', newMessage);
 
       setEditorData('');
+      setEditorText('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la transaction:', error);
     }
@@ -89,9 +90,9 @@ const App = () => {
 
   const handleEditorChange = (event, editor) => {
     const data = editor.getData();
-    const textContent = data.replace(/<[^>]*>/g, ''); // Retirer les balises HTML
+    const text = data.replace(/<[^>]*>/g, ''); // Extrait le texte brut
+    setEditorText(text.substring(0, 100)); // Limiter le texte à 100 caractères
     setEditorData(data);
-    setCanSend(textContent.length <= 100);
   };
 
   return (
@@ -132,17 +133,17 @@ const App = () => {
                   backgroundColor: '#333',
                 }}
               />
-              <p>{editorData.replace(/<[^>]*>/g, '').length} / 100 caractères</p> {/* Afficher le nombre de caractères restants */}
+              <p>{editorText.length} / 100 caractères</p> {/* Afficher le nombre de caractères restants */}
             </div>
             <button
               onClick={handleSendTransaction}
-              disabled={!connected || !canSend} // Désactive le bouton si non connecté ou texte dépasse 100 caractères
+              disabled={!connected || editorText.length > 100} // Désactive le bouton si le texte dépasse 100 caractères
               style={{
                 padding: '10px',
                 backgroundColor: '#00bfff',
                 color: 'white',
                 border: 'none',
-                cursor: connected && canSend ? 'pointer' : 'not-allowed',
+                cursor: connected && editorText.length <= 100 ? 'pointer' : 'not-allowed',
                 width: '100%', // Largeur à 100%
                 borderRadius: '5px',
               }}
@@ -172,8 +173,8 @@ const App = () => {
           overflowY: 'auto', // Ajoutez un défilement vertical si nécessaire
         }}>
           {messages.map((msg, index) => (
-            <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333' }}>
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} />
+            <div key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center' }}>
+              <div style={{ flex: 1, marginRight: '10px' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
