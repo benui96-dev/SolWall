@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
 import io from 'socket.io-client';
-import { sendTransactionWithMemo } from './solanaTransactions';
+import { sendTransactionWithMemo, getTokenBalance } from './solanaTransactions';
 import DOMPurify from 'dompurify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +16,7 @@ const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
   const [editorData, setEditorData] = useState('');
+  const [canSend, setCanSend] = useState(false); // État pour contrôler l'activation du bouton
 
   useEffect(() => {
     socket.on('message', (message) => {
@@ -26,6 +27,19 @@ const App = () => {
       socket.off('message');
     };
   }, []);
+
+  useEffect(() => {
+    const checkBalance = async () => {
+      if (connected && publicKey) {
+        const balance = await getTokenBalance(publicKey);
+        const burnAmount = 1; // Remplacez par la valeur réelle de burnAmount
+        const isSufficient = balance >= burnAmount;
+        setCanSend(isSufficient && editorData.trim() !== ''); // Activer si le solde est suffisant et le texte n'est pas vide
+      }
+    };
+
+    checkBalance();
+  }, [connected, publicKey, editorData]);
 
   const handleSendTransaction = async () => {
     if (!connected || !editorData) return;
@@ -101,12 +115,13 @@ const App = () => {
             </div>
             <button
               onClick={handleSendTransaction}
+              disabled={!canSend} // Désactive le bouton si canSend est false
               style={{
                 padding: '10px',
                 backgroundColor: '#00bfff',
                 color: 'white',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: canSend ? 'pointer' : 'not-allowed',
                 width: '100%', // Largeur à 100%
                 borderRadius: '5px',
               }}

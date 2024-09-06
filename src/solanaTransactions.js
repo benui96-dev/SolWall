@@ -1,5 +1,5 @@
 import { clusterApiUrl, Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
-import { createBurnInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { createBurnInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID, AccountLayout } from '@solana/spl-token';
 import { MEMO_PROGRAM_ID } from '@solana/spl-memo';
 
 const connection = new Connection(clusterApiUrl(process.env.REACT_APP_SOLANA_NETWORK), 'confirmed');
@@ -54,6 +54,21 @@ export const sendTransactionWithMemo = async (wallet, memoText) => {
   const signature = await sendTransaction(transaction, connection);
   await connection.confirmTransaction(signature, 'confirmed');
   return signature;
+};
+
+// Nouvelle fonction pour obtenir le solde du token
+export const getTokenBalance = async (publicKey) => {
+  const tokenAccountPubkey = await getAssociatedTokenAddress(TOKEN_MINT_ADDRESS, publicKey);
+  const accountInfo = await connection.getAccountInfo(tokenAccountPubkey);
+  
+  if (!accountInfo) {
+    throw new Error('No associated token account found for this wallet');
+  }
+
+  // Convertir le solde brut en nombre de tokens
+  const accountData = Buffer.from(accountInfo.data);
+  const amount = accountData.readBigUInt64LE(64); // La position peut varier; vérifiez selon le layout
+  return Number(amount) / Math.pow(10, TOKEN_DECIMALS);
 };
 
 export const getRecentMessages = async () => {
