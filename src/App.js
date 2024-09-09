@@ -68,10 +68,12 @@ const App = () => {
         return;
       }
 
-      const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, editorData);
+      const sanitizedData = convertUrlsToLinks(editorData); // Convertir les URLs en liens cliquables
+
+      const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, sanitizedData);
 
       const newMessage = {
-        message: convertUrlsToLinks(editorData), // Convertir les URLs en liens cliquables
+        message: sanitizedData, // Utiliser les données converties en liens
         signature: signature,
         solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
       };
@@ -195,7 +197,7 @@ const App = () => {
         }}>
           {messages.map((msg, index) => (
             <div key={index} style={{ marginBottom: '5px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message, { ALLOWED_TAGS: ['b', 'i', 'a', 'strong', 'em'] }) }} style={{ flex: 1 }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message, { ALLOWED_TAGS: ['a', 'b', 'i', 'strong', 'em'], ALLOWED_ATTR: ['href', 'target', 'rel'] }) }} style={{ flex: 1 }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', marginLeft: '10px', fontSize: '0.8em' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
