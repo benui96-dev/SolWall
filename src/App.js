@@ -100,8 +100,20 @@ const App = () => {
     }
   };
 
+  useEffect(() => {
+    // Ajouter le script du widget CoinMarketCap
+    const script = document.createElement('script');
+    script.src = 'https://files.coinmarketcap.com/static/widget/currency.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', backgroundColor: 'black', color: 'white', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', backgroundColor: 'black', color: '#14F195', overflow: 'hidden' }}>
       {/* Partie gauche */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -144,7 +156,7 @@ const App = () => {
               disabled={!connected || editorData.trim().length > 100} // Désactiver le bouton si le texte dépasse 100 caractères
               style={{
                 padding: '10px',
-                backgroundColor: '#00bfff',
+                backgroundColor: '#9945FF', // Couleur de fond du bouton
                 color: 'white',
                 border: 'none',
                 cursor: connected && editorData.trim().length <= 100 ? 'pointer' : 'not-allowed',
@@ -159,9 +171,16 @@ const App = () => {
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <p>Suivez-nous :</p>
-          <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', marginBottom: '5px' }}>Twitter</a>
-          <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', display: 'block', marginBottom: '5px' }}>Discord</a>
-          <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff' }}>GitHub</a>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
+            <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Discord</a>
+            <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
+          </div>
+        </div>
+
+        {/* Widget CoinMarketCap */}
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <div className="coinmarketcap-currency-widget" data-currencyid="5426" data-base="USD" data-secondary="" data-ticker="true" data-rank="true" data-marketcap="true" data-volume="true" data-statsticker="true" data-stats="USD"></div>
         </div>
       </div>
 
@@ -173,13 +192,13 @@ const App = () => {
           borderRadius: '5px',
           padding: '10px',
           backgroundColor: '#222',
-          color: 'white',
+          color: '#14F195', // Couleur du texte
           overflowY: 'auto', // Ajoutez un défilement vertical si nécessaire
         }}>
           {messages.map((msg, index) => (
             <div key={index} style={{ marginBottom: '5px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} style={{ flex: 1 }} />
-              <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#00bfff', marginLeft: '10px', fontSize: '0.8em' }}>
+              <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', marginLeft: '10px', fontSize: '0.8em' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
             </div>
