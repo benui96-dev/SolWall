@@ -1,5 +1,5 @@
 import { clusterApiUrl, Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
-import { createBurnInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID, AccountLayout } from '@solana/spl-token';
+import { createBurnInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { MEMO_PROGRAM_ID } from '@solana/spl-memo';
 
 const connection = new Connection(clusterApiUrl(process.env.REACT_APP_SOLANA_NETWORK), 'confirmed');
@@ -11,6 +11,13 @@ const TOKEN_DECIMALS = parseInt(process.env.REACT_APP_TOKEN_DECIMALS, 10);
 if (isNaN(TOKEN_DECIMALS)) {
   throw new Error('Invalid TOKEN_DECIMALS value');
 }
+
+// Fonction pour nettoyer le texte en enlevant les balises HTML
+const sanitizeText = (text) => {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = text;
+  return tempDiv.textContent || tempDiv.innerText || '';
+};
 
 export const sendTransactionWithMemo = async (wallet, memoText) => {
   const { publicKey, sendTransaction } = wallet;
@@ -45,10 +52,13 @@ export const sendTransactionWithMemo = async (wallet, memoText) => {
     })
   );
 
+  // Nettoyer le texte du mémo avant de l'ajouter à la transaction
+  const cleanMemoText = sanitizeText(memoText);
+
   transaction.add({
     keys: [],
     programId: MEMO_PROGRAM_ID,
-    data: Buffer.from(memoText),
+    data: Buffer.from(cleanMemoText),
   });
 
   const signature = await sendTransaction(transaction, connection);

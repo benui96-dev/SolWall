@@ -195,7 +195,7 @@ const App = () => {
         }}>
           {messages.map((msg, index) => (
             <div key={index} style={{ marginBottom: '5px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message) }} style={{ flex: 1 }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message, { ALLOWED_TAGS: ['b', 'i', 'a', 'strong', 'em'] }) }} style={{ flex: 1 }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', marginLeft: '10px', fontSize: '0.8em' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
               </a>
