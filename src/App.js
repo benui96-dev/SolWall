@@ -117,9 +117,7 @@ const App = () => {
       {/* Partie gauche */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: '2em' }}>SolWall</h1>
-          <img src="/robot.svg" alt="Logo" style={{ width: '100px', margin: '20px auto', display: 'block' }} />
-          <br /> {/* Retour à la ligne après le logo */}
+          <img src="/logo.jpg" alt="Logo" style={{ width: '700px', margin: '20px auto', display: 'block' }} />
           <WalletModalProvider>
             <WalletMultiButton style={{ width: '100%', marginBottom: '10px' }} />
           </WalletModalProvider>
