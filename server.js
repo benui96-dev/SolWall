@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const sequelize = require('./src/sequelize');
+const Message = require('./src/models/Message');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,32 +17,42 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json()); // Pour le traitement des requêtes JSON
-
-let messages = []; // Stocke les messages en mémoire (pour une solution plus robuste, utiliser une base de données)
+app.use(express.json());
 
 // Route pour obtenir les messages
-app.get('/messages', (req, res) => {
-  res.json(messages);
+app.get('/messages', async (req, res) => {
+  try {
+    const messages = await Message.findAll();
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la récupération des messages' });
+  }
 });
 
 // Route pour ajouter un message
-app.post('/messages', (req, res) => {
+app.post('/messages', async (req, res) => {
   const { message, signature, solscanLink } = req.body;
-  const newMessage = { message, signature, solscanLink };
-  messages.push(newMessage);
-  if (messages.length > 100) {
-    messages.shift(); // Conserver uniquement les 100 derniers messages
+  try {
+    const newMessage = await Message.create({ message, signature, solscanLink });
+    io.emit('message', newMessage); // Émettre le nouveau message à tous les clients
+    res.status(201).json(newMessage);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de l\'ajout du message' });
   }
-  io.emit('message', newMessage); // Émettre le nouveau message à tous les clients
-  res.status(201).json(newMessage);
 });
 
 io.on('connection', (socket) => {
   console.log('New client connected');
 
   // Émettre les messages existants à un nouveau client
-  socket.emit('allMessages', messages);
+  socket.on('getMessages', async () => {
+    try {
+      const messages = await Message.findAll();
+      socket.emit('allMessages', messages);
+    } catch (error) {
+      socket.emit('error', 'Erreur lors de la récupération des messages');
+    }
+  });
 
   socket.on('newMessage', (message) => {
     io.emit('message', message);
@@ -51,6 +63,9 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// Synchroniser les modèles avec la base de données
+sequelize.sync().then(() => {
+  server.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
 });
