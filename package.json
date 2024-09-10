@@ -20,6 +20,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "buffer": "^6.0.3",
+    "ckeditor4-react": "^5.2.0",
     "cors": "^2.8.5",
     "dompurify": "^3.1.6",
     "express": "^4.19.2",
