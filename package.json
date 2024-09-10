@@ -19,6 +19,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "@tinymce/tinymce-react": "^5.1.1",
     "buffer": "^6.0.3",
     "ckeditor4-react": "^5.2.0",
     "cors": "^2.8.5",

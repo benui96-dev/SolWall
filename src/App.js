@@ -6,8 +6,7 @@ import { sendTransactionWithMemo, getTokenBalance } from './solanaTransactions';
 import DOMPurify from 'dompurify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import { Editor } from '@tinymce/tinymce-react';
 import './styles.css'; // Assurez-vous que le fichier styles.css est bien configuré
 
 const socket = io('http://localhost:5000');
@@ -95,10 +94,9 @@ const App = () => {
     }
   };
 
-  const handleEditorChange = (event, editor) => {
-    const data = editor.getData();
-    if (data.length <= 100) {
-      setEditorData(data);
+  const handleEditorChange = (content, editor) => {
+    if (content.length <= 100) {
+      setEditorData(content);
     }
   };
 
@@ -134,21 +132,18 @@ const App = () => {
           <>
             <p style={{ textAlign: 'center', marginBottom: '10px' }}>Wallet ID: {publicKey.toBase58()}</p>
             <div style={{ marginBottom: '10px' }}>
-              <CKEditor
-                editor={ClassicEditor}
-                config={{
-                  toolbar: [
-                    'bold',
-                    'italic',
-                    'link',
-                    'undo',
-                    'redo',
-                    'fontColor',
-                    'emoji'
-                  ],
+              <Editor
+                init={{
+                  height: 200,
+                  menubar: false,
+                  plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount emoticons',
+                  toolbar: 'undo redo | formatselect | bold italic backcolor | emoticons | removeformat | help',
+                  content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+                  toolbar_mode: 'floating',
+                  // Pas besoin d'ajouter une clé API pour la version open source
                 }}
-                data={editorData}
-                onChange={handleEditorChange}
+                value={editorData}
+                onEditorChange={handleEditorChange}
                 style={{
                   height: '200px',
                   borderRadius: '5px',
