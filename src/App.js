@@ -120,6 +120,11 @@ const App = () => {
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <img src="/logo.jpg" alt="Logo" style={{ width: '700px', margin: '20px auto', display: 'block' }} />
+          {/* Texte ajouté en dessous du logo */}
+          <p style={{ color: '#14F195', fontSize: '1.2em', marginTop: '10px' }}>
+            Write your message for eternity on chain 💫<br />
+            Powered by Solana blockchain 🔗 & Phantom 👻
+          </p>
           <WalletModalProvider>
             <WalletMultiButton style={{ width: '100%', marginBottom: '10px' }} />
           </WalletModalProvider>
