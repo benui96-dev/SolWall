@@ -137,7 +137,7 @@ const App = () => {
                   height: 200,
                   menubar: false,
                   plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount emoticons',
-                  toolbar: 'undo redo | formatselect | bold italic backcolor | emoticons | removeformat | help',
+                  toolbar: 'undo redo | bold italic backcolor | emoticons | link | removeformat',
                   content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                   toolbar_mode: 'floating',
                   // Pas besoin d'ajouter une clé API pour la version open source
