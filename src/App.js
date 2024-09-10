@@ -184,7 +184,16 @@ const App = () => {
         </div>
 
         {/* Widget CoinMarketCap */}
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center', // Centre verticalement
+          alignItems: 'center',      // Centre horizontalement
+          height: '40vh',           // Hauteur pleine page
+          backgroundColor: 'black', 
+          color: '#14F195', 
+          overflow: 'hidden' 
+        }}>
           <div className="coinmarketcap-currency-widget" data-currencyid="5426" data-base="USD" data-secondary="" data-ticker="true" data-rank="true" data-marketcap="true" data-volume="true" data-statsticker="true" data-stats="USD"></div>
         </div>
       </div>
