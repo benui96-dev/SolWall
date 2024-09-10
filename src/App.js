@@ -184,7 +184,7 @@ const App = () => {
           flexDirection: 'column', 
           justifyContent: 'center', // Centre verticalement
           alignItems: 'center',      // Centre horizontalement
-          height: '40vh',           // Hauteur pleine page
+          height: '25vh',           // Hauteur pleine page
           backgroundColor: 'black', 
           color: '#14F195', 
           overflow: 'hidden' 
