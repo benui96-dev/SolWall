@@ -223,7 +223,7 @@ const App = () => {
             <a href="https://" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>White paper</a>
             <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
             <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Telegram</a>
-            <a href="https://github.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
+            <a href="https://github.com/benui96-dev/SolWall" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
             <a href="mailto:" style={{ color: '#14F195' }}>Contact</a>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
