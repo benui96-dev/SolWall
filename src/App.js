@@ -220,6 +220,7 @@ const App = () => {
             Contract: xxxxxxxxxxxxxxxxxxxxxxxxxxxx
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            Project:
             <a href="https://" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>White paper</a>
             <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
             <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Telegram</a>
