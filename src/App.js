@@ -7,7 +7,7 @@ import DOMPurify from 'dompurify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { Editor } from '@tinymce/tinymce-react';
-import './styles.css'; // Assurez-vous que le fichier styles.css est bien configuré
+import './styles.css';
 
 const socket = io('http://localhost:5000');
 
@@ -17,11 +17,29 @@ const convertUrlsToLinks = (text) => {
   return text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 };
 
+const getTextWithoutUrls = (htmlContent) => {
+  const tempElement = document.createElement('div');
+  tempElement.innerHTML = htmlContent;
+  
+  // Parcourir tous les liens et remplacer leur HTML par leur texte visible seulement
+  const anchorTags = tempElement.getElementsByTagName('a');
+  for (let i = anchorTags.length - 1; i >= 0; i--) {
+    const anchor = anchorTags[i];
+    // Remplace l'élément <a> par son contenu texte (le texte visible)
+    const textNode = document.createTextNode(anchor.textContent);
+    anchor.parentNode.replaceChild(textNode, anchor);
+  }
+
+  return tempElement.textContent || tempElement.innerText || '';  // Récupérer le texte visible
+};
+
+
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
   const [editorData, setEditorData] = useState('');
-  const messagesEndRef = useRef(null); // Référence pour le défilement automatique
+  const [visibleTextLength, setVisibleTextLength] = useState(0); // Compteur pour le texte visible
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     // Charger les messages depuis le serveur
@@ -29,7 +47,7 @@ const App = () => {
       try {
         const response = await fetch('http://localhost:5000/messages');
         const data = await response.json();
-        setMessages(data.reverse()); // Inverser l'ordre des messages pour que les plus récents soient en haut
+        setMessages(data.reverse());
       } catch (error) {
         console.error('Erreur lors de la récupération des messages:', error);
       }
@@ -38,11 +56,10 @@ const App = () => {
     fetchMessages();
 
     socket.on('message', (message) => {
-      // Ajouter le message seulement s'il n'existe pas déjà dans la liste
       setMessages((prevMessages) => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
-          return [message, ...prevMessages]; // Ajouter le nouveau message en haut
+          return [message, ...prevMessages];
         }
         return prevMessages;
       });
@@ -57,9 +74,8 @@ const App = () => {
     if (!connected || !editorData) return;
 
     try {
-      // Vérifiez le solde lorsque l'utilisateur clique sur le bouton
       const balance = await getTokenBalance(publicKey);
-      const burnAmount = 1; // Remplacez par la valeur réelle de burnAmount
+      const burnAmount = 1;
       const isSufficient = balance >= burnAmount;
 
       if (!isSufficient) {
@@ -68,16 +84,14 @@ const App = () => {
       }
 
       const sanitizedData = convertUrlsToLinks(editorData); // Convertir les URLs en liens cliquables
-
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, sanitizedData);
 
       const newMessage = {
-        message: sanitizedData, // Utiliser les données converties en liens
+        message: sanitizedData,
         signature: signature,
         solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
       };
 
-      // Envoyer le message au serveur
       await fetch('http://localhost:5000/messages', {
         method: 'POST',
         headers: {
@@ -95,13 +109,14 @@ const App = () => {
   };
 
   const handleEditorChange = (content, editor) => {
-    if (content.length <= 100) {
+    const textWithoutUrls = getTextWithoutUrls(content); // Extraire le texte sans les URLs
+    if (textWithoutUrls.length <= 75) {
       setEditorData(content);
+      setVisibleTextLength(textWithoutUrls.length); // Mettre à jour le compteur
     }
   };
 
   useEffect(() => {
-    // Ajouter le script du widget CoinMarketCap
     const script = document.createElement('script');
     script.src = 'https://files.coinmarketcap.com/static/widget/currency.js';
     script.async = true;
@@ -114,11 +129,9 @@ const App = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', backgroundColor: 'black', color: '#14F195', overflow: 'hidden' }}>
-      {/* Partie gauche */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <img src="/logo.jpg" alt="Logo" style={{ width: '700px', margin: '20px auto', display: 'block' }} />
-          {/* Texte ajouté en dessous du logo */}
           <p style={{ color: '#14F195', fontSize: '1.2em', marginTop: '10px' }}>
             Write your message for eternity on chain 💫<br />
             Powered by Solana blockchain 🔗 & Phantom 👻
@@ -140,7 +153,49 @@ const App = () => {
                   toolbar: 'undo redo | bold italic | emoticons | link | removeformat',
                   content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                   toolbar_mode: 'floating',
-                  // Pas besoin d'ajouter une clé API pour la version open source
+                  link_context_toolbar: true,  // Active la barre contextuelle
+                  link_title: false,  // Désactive le champ "Title" dans le dialog de lien
+                  setup: (editor) => {
+                    // Personnalise le dialog de lien pour masquer "Text to display" et "Open link in"
+                    editor.on('PreInit', function() {
+                      editor.ui.registry.addButton('link', {
+                        icon: 'link',
+                        tooltip: 'Insert/edit link',
+                        onAction: () => {
+                          editor.windowManager.open({
+                            title: 'Insert/Edit Link',
+                            body: {
+                              type: 'panel',
+                              items: [
+                                {
+                                  type: 'input', 
+                                  name: 'url', 
+                                  label: 'URL',
+                                  placeholder: 'Enter the URL'
+                                }
+                              ]
+                            },
+                            buttons: [
+                              {
+                                text: 'Cancel',
+                                type: 'cancel'
+                              },
+                              {
+                                text: 'Save',
+                                type: 'submit',
+                                primary: true
+                              }
+                            ],
+                            onSubmit: (api) => {
+                              const data = api.getData();
+                              editor.insertContent(`<a href="${data.url}" target="_blank" rel="noopener noreferrer">${data.url}</a>`);
+                              api.close();
+                            }
+                          });
+                        }
+                      });
+                    });
+                  }
                 }}
                 value={editorData}
                 onEditorChange={handleEditorChange}
@@ -150,17 +205,18 @@ const App = () => {
                   backgroundColor: '#333',
                 }}
               />
+              <p style={{ textAlign: 'center' }}>Caractères restants: {75 - visibleTextLength}</p>
             </div>
             <button
               onClick={handleSendTransaction}
-              disabled={!connected || editorData.trim().length > 100} // Désactiver le bouton si le texte dépasse 100 caractères
+              disabled={!connected || visibleTextLength > 75}
               style={{
                 padding: '10px',
-                backgroundColor: '#9945FF', // Couleur de fond du bouton
+                backgroundColor: '#9945FF',
                 color: 'white',
                 border: 'none',
-                cursor: connected && editorData.trim().length <= 100 ? 'pointer' : 'not-allowed',
-                width: '100%', // Largeur à 100%
+                cursor: connected && visibleTextLength <= 75 ? 'pointer' : 'not-allowed',
+                width: '100%',
                 borderRadius: '5px',
               }}
             >
@@ -170,8 +226,8 @@ const App = () => {
         )}
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <p>Suivez-nous :</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            Suivez-nous sur :
             <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
             <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Discord</a>
             <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
@@ -184,7 +240,7 @@ const App = () => {
           flexDirection: 'column', 
           justifyContent: 'center', // Centre verticalement
           alignItems: 'center',      // Centre horizontalement
-          height: '25vh',           // Hauteur pleine page
+          height: '22vh',           // Hauteur pleine page
           backgroundColor: 'black', 
           color: '#14F195', 
           overflow: 'hidden' 
