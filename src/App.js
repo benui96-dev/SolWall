@@ -138,7 +138,7 @@ const App = () => {
             <div style={{ marginBottom: '10px' }}>
               <Editor
                 init={{
-                  height: 200,
+                  height: 150,
                   menubar: false,
                   plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount emoticons',
                   toolbar: 'undo redo | bold italic | emoticons | link | removeformat',
@@ -217,11 +217,27 @@ const App = () => {
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>White paper</a>
-            <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
-            <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Telegram</a>
-            <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
-            <a href="mailto:someone@example.com" style={{ color: '#14F195' }}>Contact</a>
+            Contract: xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <a href="https://" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>White paper</a>
+            <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
+            <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Telegram</a>
+            <a href="https://github.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
+            <a href="mailto:" style={{ color: '#14F195' }}>Contact</a>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            Buy on:
+            <a href="https://raydium.io/swap/?from=11111111111111111111111111111111&to=" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Raydium</a>
+            <a href="https://www.orca.so/?outputCurrency=" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Orca</a>
+            <a href="https://jup.ag/swap/SOL-" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Jupiter</a>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            Charts:
+            <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Dextools</a>
+            <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Dexscreener</a>
+            <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Birdeye</a>
+            <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>CoinMarketCap</a>
           </div>
         </div>
 
