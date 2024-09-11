@@ -125,7 +125,7 @@ const App = () => {
           <img src="/logo.jpg" alt="Logo" style={{ width: '700px', margin: '20px auto', display: 'block' }} />
           <p style={{ color: '#14F195', fontSize: '1.2em', marginTop: '10px' }}>
             Write your message for eternity on chain 💫<br />
-            Powered by Solana blockchain 🔗 & Phantom 👻
+            Powered by Solana 🔗 & Phantom 👻
           </p>
           <WalletModalProvider>
             <WalletMultiButton style={{ width: '100%', marginBottom: '10px' }} />
@@ -195,7 +195,7 @@ const App = () => {
                   backgroundColor: '#333',
                 }}
               />
-              <p style={{ textAlign: 'center' }}>Caractères restants: {75 - visibleTextLength}</p>
+              <p style={{ textAlign: 'center' }}>Remaining characters: {75 - visibleTextLength}</p>
             </div>
             <button
               onClick={handleSendTransaction}
@@ -217,10 +217,11 @@ const App = () => {
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Suivez-nous sur :
+            <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>White paper</a>
             <a href="https://twitter.com/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
-            <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Discord</a>
+            <a href="https://discord.gg/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Telegram</a>
             <a href="https://github.com/solana-labs/solana" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>GitHub</a>
+            <a href="mailto:someone@example.com" style={{ color: '#14F195' }}>Contact</a>
           </div>
         </div>
 
@@ -241,7 +242,7 @@ const App = () => {
 
       {/* Partie droite */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column-reverse' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '1.5em', marginBottom: '10px' }}>Derniers Messages</h2>
+        <h2 style={{ textAlign: 'center', fontSize: '1.5em', marginBottom: '10px' }}>Last messages 💬</h2>
         <div style={{
           flex: 1,
           borderRadius: '5px',
@@ -254,7 +255,7 @@ const App = () => {
             <div key={index} className="message-content" style={{ marginBottom: '5px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message, { ALLOWED_TAGS: ['a', 'b', 'i', 'strong', 'em'], ALLOWED_ATTR: ['href', 'target', 'rel'] }) }} style={{ flex: 1 }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF', marginLeft: '10px', fontSize: '0.8em' }}>
-                <FontAwesomeIcon icon={faExternalLinkAlt} /> Voir sur Solscan
+                <FontAwesomeIcon icon={faExternalLinkAlt} /> See on Solscan
               </a>
             </div>
           ))}
