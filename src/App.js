@@ -11,12 +11,6 @@ import './styles.css';
 
 const socket = io('http://localhost:5000');
 
-// Fonction pour convertir les URLs en liens cliquables
-const convertUrlsToLinks = (text) => {
-  const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%?=~_|])/ig;
-  return text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-};
-
 const getTextWithoutUrls = (htmlContent) => {
   const tempElement = document.createElement('div');
   tempElement.innerHTML = htmlContent;
@@ -25,7 +19,6 @@ const getTextWithoutUrls = (htmlContent) => {
   const anchorTags = tempElement.getElementsByTagName('a');
   for (let i = anchorTags.length - 1; i >= 0; i--) {
     const anchor = anchorTags[i];
-    // Remplace l'élément <a> par son contenu texte (le texte visible)
     const textNode = document.createTextNode(anchor.textContent);
     anchor.parentNode.replaceChild(textNode, anchor);
   }
@@ -33,16 +26,14 @@ const getTextWithoutUrls = (htmlContent) => {
   return tempElement.textContent || tempElement.innerText || '';  // Récupérer le texte visible
 };
 
-
 const App = () => {
   const { publicKey, connected, sendTransaction } = useWallet();
   const [messages, setMessages] = useState([]);
   const [editorData, setEditorData] = useState('');
-  const [visibleTextLength, setVisibleTextLength] = useState(0); // Compteur pour le texte visible
+  const [visibleTextLength, setVisibleTextLength] = useState(0);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Charger les messages depuis le serveur
     const fetchMessages = async () => {
       try {
         const response = await fetch('http://localhost:5000/messages');
@@ -83,7 +74,7 @@ const App = () => {
         return;
       }
 
-      const sanitizedData = convertUrlsToLinks(editorData); // Convertir les URLs en liens cliquables
+      const sanitizedData = editorData;  // TinyMCE gère déjà la conversion des URLs
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, sanitizedData);
 
       const newMessage = {
@@ -109,10 +100,10 @@ const App = () => {
   };
 
   const handleEditorChange = (content, editor) => {
-    const textWithoutUrls = getTextWithoutUrls(content); // Extraire le texte sans les URLs
+    const textWithoutUrls = getTextWithoutUrls(content);
     if (textWithoutUrls.length <= 75) {
       setEditorData(content);
-      setVisibleTextLength(textWithoutUrls.length); // Mettre à jour le compteur
+      setVisibleTextLength(textWithoutUrls.length);
     }
   };
 
@@ -153,10 +144,9 @@ const App = () => {
                   toolbar: 'undo redo | bold italic | emoticons | link | removeformat',
                   content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                   toolbar_mode: 'floating',
-                  link_context_toolbar: true,  // Active la barre contextuelle
-                  link_title: false,  // Désactive le champ "Title" dans le dialog de lien
+                  link_context_toolbar: true,
+                  link_title: false,
                   setup: (editor) => {
-                    // Personnalise le dialog de lien pour masquer "Text to display" et "Open link in"
                     editor.on('PreInit', function() {
                       editor.ui.registry.addButton('link', {
                         icon: 'link',
@@ -268,7 +258,7 @@ const App = () => {
               </a>
             </div>
           ))}
-          <div ref={messagesEndRef} /> {/* Référence pour faire défiler vers le bas */}
+          <div ref={messagesEndRef} />
         </div>
       </div>
     </div>
