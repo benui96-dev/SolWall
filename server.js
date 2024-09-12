@@ -29,12 +29,20 @@ app.get('/messages', async (req, res) => {
   }
 });
 
-// Route to add a message
+app.get('/messages/count', async (req, res) => {
+  try {
+    const messageCount = await Message.count();
+    res.json({ count: messageCount });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching message count' });
+  }
+});
+
 app.post('/messages', async (req, res) => {
   const { message, signature, solscanLink } = req.body;
   try {
     const newMessage = await Message.create({ message, signature, solscanLink });
-    io.emit('message', newMessage); // Emit the new message to all clients
+    io.emit('message', newMessage);
     res.status(201).json(newMessage);
   } catch (error) {
     res.status(500).json({ error: 'Error adding message' });
@@ -42,7 +50,6 @@ app.post('/messages', async (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  // Emit existing messages to a new client
   socket.on('getMessages', async () => {
     try {
       const messages = await Message.findAll();
@@ -59,7 +66,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {});
 });
 
-// Sync models with the database
 sequelize.sync().then(() => {
   server.listen(PORT);
 });

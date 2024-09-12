@@ -15,7 +15,6 @@ const getTextWithoutUrls = (htmlContent) => {
   const tempElement = document.createElement('div');
   tempElement.innerHTML = htmlContent;
   
-  // Parcourir tous les liens et remplacer leur HTML par leur texte visible seulement
   const anchorTags = tempElement.getElementsByTagName('a');
   for (let i = anchorTags.length - 1; i >= 0; i--) {
     const anchor = anchorTags[i];
@@ -23,7 +22,7 @@ const getTextWithoutUrls = (htmlContent) => {
     anchor.parentNode.replaceChild(textNode, anchor);
   }
 
-  return tempElement.textContent || tempElement.innerText || '';  // Récupérer le texte visible
+  return tempElement.textContent || tempElement.innerText || '';  
 };
 
 const App = () => {
@@ -31,6 +30,8 @@ const App = () => {
   const [messages, setMessages] = useState([]);
   const [editorData, setEditorData] = useState('');
   const [visibleTextLength, setVisibleTextLength] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+  const [platformFees, setPlatformFees] = useState(0);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +40,11 @@ const App = () => {
         const response = await fetch('http://localhost:5000/messages');
         const data = await response.json();
         setMessages(data.reverse());
+
+         const countResponse = await fetch('http://localhost:5000/messages/count');
+         const countData = await countResponse.json();
+         setMessageCount(countData.count);
+         setPlatformFees(countData.count * 0.0005);  // Calcul des frais de la plateforme
       } catch (error) {
         console.error('Erreur lors de la récupération des messages:', error);
       }
@@ -74,7 +80,7 @@ const App = () => {
         return;
       }
 
-      const sanitizedData = editorData;  // TinyMCE gère déjà la conversion des URLs
+      const sanitizedData = editorData;
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, sanitizedData);
 
       const newMessage = {
@@ -258,7 +264,10 @@ const App = () => {
 
       {/* Partie droite */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column-reverse' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '1.5em', marginBottom: '10px' }}>Last messages 💬</h2>
+        <h2 style={{ textAlign: 'center', fontSize: '1em', marginBottom: '0px' }}>
+          💬 Total number of messages: {messageCount}&nbsp;
+          💵 Platform fees generated: {platformFees.toFixed(4)} SOL
+        </h2>
         <div style={{
           flex: 1,
           borderRadius: '5px',
@@ -272,9 +281,9 @@ const App = () => {
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message, { ALLOWED_TAGS: ['a', 'b', 'i', 'strong', 'em'], ALLOWED_ATTR: ['href', 'target', 'rel'] }) }} style={{ flex: 1 }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF', marginLeft: '10px', fontSize: '0.8em' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> See on Solscan
-              </a>
-            </div>
-          ))}
+            </a>
+          </div>
+        ))}
           <div ref={messagesEndRef} />
         </div>
       </div>
