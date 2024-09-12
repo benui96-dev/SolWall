@@ -246,6 +246,7 @@ const App = () => {
             <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Dexscreener</a>
             <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Birdeye</a>
             <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>CoinMarketCap</a>
+            <a href="https://rugcheck.xyz/tokens/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>RugCheck</a>
           </div>
         </div>
 
