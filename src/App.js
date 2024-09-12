@@ -56,6 +56,8 @@ const App = () => {
       setMessages((prevMessages) => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
+          setMessageCount((prevCount) => prevCount + 1);
+          setPlatformFees((prevFees) => prevFees + 0.0005);
           return [message, ...prevMessages];
         }
         return prevMessages;
