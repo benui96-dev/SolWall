@@ -225,28 +225,29 @@ const App = () => {
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Contract: xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            Contract: 
+            <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>xxx</a>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
             Project:
-            <a href="https://whitepaper.solwall.live" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>White paper</a>
-            <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Twitter</a>
-            <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Telegram</a>
-            <a href="mailto:" style={{ color: '#14F195' }}>Contact</a>
+            <a href="https://whitepaper.solwall.live" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>White paper</a>
+            <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Twitter</a>
+            <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Telegram</a>
+            <a href="https://rugcheck.xyz/tokens/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>RugCheck</a>
+            <a href="mailto:" style={{ color: '#9945FF' }}>Contact</a>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
             Buy on:
-            <a href="https://raydium.io/swap/?from=11111111111111111111111111111111&to=" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Raydium</a>
-            <a href="https://www.orca.so/?outputCurrency=" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Orca</a>
-            <a href="https://jup.ag/swap/SOL-" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Jupiter</a>
+            <a href="https://jup.ag/swap/SOL-" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Jupiter</a>
+            <a href="https://raydium.io/swap/?from=11111111111111111111111111111111&to=" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Raydium</a>
+            <a href="https://www.orca.so/?outputCurrency=" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Orca</a>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
             Charts:
-            <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Dextools</a>
-            <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Dexscreener</a>
-            <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>Birdeye</a>
-            <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>CoinMarketCap</a>
-            <a href="https://rugcheck.xyz/tokens/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195' }}>RugCheck</a>
+            <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dextools</a>
+            <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dexscreener</a>
+            <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Birdeye</a>
+            <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>CoinMarketCap</a>
           </div>
         </div>
 

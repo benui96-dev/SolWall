@@ -48,7 +48,7 @@
       SystemProgram.transfer({
         fromPubkey: publicKey,
         toPubkey: FEE_ADDRESS,
-        lamports: 50000000, // Frais en SOL (0.0005 SOL)
+        lamports: 20000000, // Frais en SOL (0.0002 SOL)
       })
     );
 
