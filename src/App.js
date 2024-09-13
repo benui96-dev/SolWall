@@ -44,9 +44,9 @@ const App = () => {
          const countResponse = await fetch('http://localhost:5000/messages/count');
          const countData = await countResponse.json();
          setMessageCount(countData.count);
-         setPlatformFees(countData.count * 0.0005);  // Calcul des frais de la plateforme
+         setPlatformFees(countData.count * 0.0002);
       } catch (error) {
-        console.error('Erreur lors de la récupération des messages:', error);
+        console.error('Error retrieving messages:', error);
       }
     };
 
@@ -57,7 +57,7 @@ const App = () => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
           setMessageCount((prevCount) => prevCount + 1);
-          setPlatformFees((prevFees) => prevFees + 0.0005);
+          setPlatformFees((prevFees) => prevFees + 0.0002);
           return [message, ...prevMessages];
         }
         return prevMessages;
@@ -78,7 +78,7 @@ const App = () => {
       const isSufficient = balance >= burnAmount;
 
       if (!isSufficient) {
-        console.error('Solde insuffisant pour envoyer le message.');
+        console.error('Insufficient balance to send message.');
         return;
       }
 
@@ -103,7 +103,7 @@ const App = () => {
 
       setEditorData('');
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de la transaction:', error);
+      console.error('Error sending transaction:', error);
     }
   };
 
@@ -218,7 +218,7 @@ const App = () => {
                 borderRadius: '5px',
               }}
             >
-              Envoyer le message
+              Send message
             </button>
           </>
         )}
@@ -247,7 +247,7 @@ const App = () => {
             <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dextools</a>
             <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dexscreener</a>
             <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Birdeye</a>
-            <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>CoinMarketCap</a>
+            <a href="#" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>CoinMarketCap</a>
           </div>
         </div>
 
