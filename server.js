@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
       const messages = await Message.findAll();
       socket.emit('allMessages', messages);
     } catch (error) {
-      socket.emit('error', 'Error fetching messages');
+      socket.emit('error', 'Erreur lors de la récupération des messages');
     }
   });
 
