@@ -19,7 +19,22 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Route to get messages
+const cleanOldMessages = async () => {
+  try {
+    const messageCount = await Message.count();
+    if (messageCount > 500) {
+      const excess = messageCount - 500;
+      await Message.destroy({
+        where: {},
+        order: [['id', 'ASC']],
+        limit: excess
+      });
+    }
+  } catch (error) {
+    console.error('Error cleaning old messages:', error);
+  }
+};
+
 app.get('/messages', async (req, res) => {
   try {
     const messages = await Message.findAll();
@@ -42,6 +57,9 @@ app.post('/messages', async (req, res) => {
   const { message, signature, solscanLink } = req.body;
   try {
     const newMessage = await Message.create({ message, signature, solscanLink });
+
+    await cleanOldMessages();
+
     io.emit('message', newMessage);
     res.status(201).json(newMessage);
   } catch (error) {
@@ -55,7 +73,7 @@ io.on('connection', (socket) => {
       const messages = await Message.findAll();
       socket.emit('allMessages', messages);
     } catch (error) {
-      socket.emit('error', 'Erreur lors de la récupération des messages');
+      socket.emit('error', 'Error retrieving messages');
     }
   });
 
@@ -67,5 +85,7 @@ io.on('connection', (socket) => {
 });
 
 sequelize.sync().then(() => {
-  server.listen(PORT);
+  server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 });
