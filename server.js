@@ -47,25 +47,19 @@ const cleanOldMessages = async () => {
   }
 };
 
-// Mettre à jour ou créer les statistiques de la plateforme
-const updatePlatformStats = async () => {
+const updatePlatformStats = async (newMessage) => {
   try {
-    const messageCount = await Message.count();
-    const platformFees = messageCount * 0.0001; // Par exemple, chaque message génère 0.0001 SOL de frais
+    const currentStats = await PlatformStats.findOne({
+      order: [['createdAt', 'DESC']]
+    });
 
-    const existingStats = await PlatformStats.findOne();
-    if (existingStats) {
-      // Mettre à jour les statistiques existantes
-      existingStats.messageCount = messageCount;
-      existingStats.platformFees = platformFees;
-      await existingStats.save();
-    } else {
-      // Créer de nouvelles statistiques
-      await PlatformStats.create({
-        messageCount: messageCount,
-        platformFees: platformFees
-      });
-    }
+    const newMessageCount = (currentStats ? currentStats.messageCount : 0) + 1;
+    const newPlatformFees = (currentStats ? currentStats.platformFees : 0) + 0.0001;
+
+    await PlatformStats.create({
+      platformFees: newPlatformFees,
+      messageCount: newMessageCount
+    });
   } catch (error) {
     console.error('Error updating platform stats:', error);
   }
@@ -90,11 +84,13 @@ app.get('/messages/count', async (req, res) => {
   }
 });
 
-// Route API pour obtenir les statistiques de la plateforme
+// Route API pour obtenir les statistiques
 app.get('/platform-stats', async (req, res) => {
   try {
-    const stats = await PlatformStats.findOne();
-    res.json(stats);
+    const stats = await PlatformStats.findOne({
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(stats || { platformFees: 0, messageCount: 0 });
   } catch (error) {
     res.status(500).json({ error: 'Error fetching platform stats' });
   }
@@ -106,7 +102,7 @@ app.post('/messages', async (req, res) => {
     const newMessage = await Message.create({ message, signature, solscanLink });
 
     await cleanOldMessages();
-    await updatePlatformStats(); // Mettre à jour les statistiques après chaque ajout de message
+    await updatePlatformStats(newMessage); // Mettre à jour les statistiques après chaque ajout de message
 
     io.emit('message', newMessage);
     res.status(201).json(newMessage);

@@ -14,7 +14,7 @@ const socket = io('http://localhost:5000');
 const getTextWithoutUrls = (htmlContent) => {
   const tempElement = document.createElement('div');
   tempElement.innerHTML = htmlContent;
-  
+
   const anchorTags = tempElement.getElementsByTagName('a');
   for (let i = anchorTags.length - 1; i >= 0; i--) {
     const anchor = anchorTags[i];
@@ -22,7 +22,7 @@ const getTextWithoutUrls = (htmlContent) => {
     anchor.parentNode.replaceChild(textNode, anchor);
   }
 
-  return tempElement.textContent || tempElement.innerText || '';  
+  return tempElement.textContent || tempElement.innerText || '';
 };
 
 const App = () => {
@@ -35,22 +35,22 @@ const App = () => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchMessagesAndStats = async () => {
       try {
         const response = await fetch('http://localhost:5000/messages');
         const data = await response.json();
         setMessages(data.reverse());
 
-         const countResponse = await fetch('http://localhost:5000/messages/count');
-         const countData = await countResponse.json();
-         setMessageCount(countData.count);
-         setPlatformFees(countData.count * 0.0001);
+        const countResponse = await fetch('http://localhost:5000/platform-stats');
+        const countData = await countResponse.json();
+        setMessageCount(countData.messageCount || 0);
+        setPlatformFees(countData.platformFees || 0);
       } catch (error) {
-        console.error('Error retrieving messages:', error);
+        console.error('Error retrieving messages and stats:', error);
       }
     };
 
-    fetchMessages();
+    fetchMessagesAndStats();
 
     socket.on('message', (message) => {
       setMessages((prevMessages) => {
@@ -104,8 +104,7 @@ const App = () => {
         body: JSON.stringify(newMessage),
       });
 
-      socket.emit('newMessage', newMessage);
-
+      socket.emit('message', newMessage);
       setEditorData('');
     } catch (error) {
       console.error('Error sending transaction:', error);
@@ -294,7 +293,7 @@ const App = () => {
             </a>
           </div>
         ))}
-          <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} />
         </div>
       </div>
     </div>
