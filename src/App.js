@@ -64,8 +64,13 @@ const App = () => {
       });
     });
 
+    socket.on('allMessages', (allMessages) => {
+      setMessages(allMessages.reverse());
+    });
+
     return () => {
       socket.off('message');
+      socket.off('allMessages');
     };
   }, []);
 

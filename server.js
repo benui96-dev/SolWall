@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
@@ -16,9 +17,19 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Servir les fichiers statiques de "build"
+app.use(express.static(path.join(__dirname, 'build')));
+
+// Rediriger toutes les routes vers index.html (React Router)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
+
+// Nettoyage des anciens messages (limite à 500)
 const cleanOldMessages = async () => {
   try {
     const messageCount = await Message.count();
@@ -35,6 +46,7 @@ const cleanOldMessages = async () => {
   }
 };
 
+// Routes API pour gérer les messages
 app.get('/messages', async (req, res) => {
   try {
     const messages = await Message.findAll();
@@ -67,15 +79,15 @@ app.post('/messages', async (req, res) => {
   }
 });
 
-io.on('connection', (socket) => {
-  socket.on('getMessages', async () => {
-    try {
-      const messages = await Message.findAll();
-      socket.emit('allMessages', messages);
-    } catch (error) {
-      socket.emit('error', 'Error retrieving messages');
-    }
-  });
+// WebSocket pour gérer les messages en temps réel
+io.on('connection', async (socket) => {
+  try {
+    // Récupérer tous les messages dès qu'un utilisateur se connecte
+    const messages = await Message.findAll();
+    socket.emit('allMessages', messages);
+  } catch (error) {
+    socket.emit('error', 'Error retrieving messages');
+  }
 
   socket.on('newMessage', (message) => {
     io.emit('message', message);
@@ -84,6 +96,9 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {});
 });
 
+// Démarrage du serveur après la synchronisation de Sequelize
 sequelize.sync().then(() => {
-  server.listen(PORT);
+  server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 });
