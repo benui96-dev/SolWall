@@ -44,7 +44,7 @@ const App = () => {
          const countResponse = await fetch('http://localhost:5000/messages/count');
          const countData = await countResponse.json();
          setMessageCount(countData.count);
-         setPlatformFees(countData.count * 0.0002);
+         setPlatformFees(countData.count * 0.0001);
       } catch (error) {
         console.error('Error retrieving messages:', error);
       }
@@ -57,7 +57,7 @@ const App = () => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
           setMessageCount((prevCount) => prevCount + 1);
-          setPlatformFees((prevFees) => prevFees + 0.0002);
+          setPlatformFees((prevFees) => prevFees + 0.0001);
           return [message, ...prevMessages];
         }
         return prevMessages;
