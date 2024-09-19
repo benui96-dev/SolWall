@@ -6,8 +6,8 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
 
 const SolanaProvider = ({ children }) => {
-  const network = clusterApiUrl('mainnet-beta'); // Vous pouvez aussi utiliser 'devnet' ou 'testnet'
-  const wallets = [new PhantomWalletAdapter()]; // Liste des wallets supportés
+  const network = clusterApiUrl('mainnet-beta');
+  const wallets = [new PhantomWalletAdapter()];
 
   return (
     <ConnectionProvider endpoint={network}>

@@ -20,8 +20,8 @@ const PlatformStats = sequelize.define('PlatformStats', {
     defaultValue: DataTypes.NOW
   }
 }, {
-  timestamps: false, // Désactive les timestamps automatiques (createdAt, updatedAt) car nous avons notre propre createdAt
-  tableName: 'PlatformStats' // Assure que le nom de la table est bien `PlatformStats`
+  timestamps: false,
+  tableName: 'PlatformStats'
 });
 
 module.exports = PlatformStats;

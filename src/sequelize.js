@@ -1,14 +1,10 @@
-// src/sequelize.js
-
 const { Sequelize } = require('sequelize');
 
-// Créer une instance Sequelize pour SQLite
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: './database.sqlite' // Nom du fichier SQLite
+  storage: './database.sqlite'
 });
 
-// Tester la connexion
 sequelize.authenticate()
   .then(() => {
     console.log('Connection to SQLite has been established successfully.');

@@ -23,7 +23,6 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Rediriger toutes les routes vers index.html (React Router)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
@@ -32,10 +31,9 @@ const { Op } = require('sequelize');
 
 const cleanOldMessagesAndStats = async () => {
   try {
-    // Nettoyage des anciens messages
     const messageCount = await Message.count();
-    if (messageCount > 2) {
-      const excess = messageCount - 2;
+    if (messageCount > 150) {
+      const excess = messageCount - 150;
       const messagesToDelete = await Message.findAll({
         order: [['id', 'DESC']], 
         limit: excess
@@ -52,8 +50,8 @@ const cleanOldMessagesAndStats = async () => {
     }
 
     const statsCount = await PlatformStats.count();
-    if (statsCount > 2) {
-      const excessStats = statsCount - 2;
+    if (statsCount > 150) {
+      const excessStats = statsCount - 150;
       const statsToDelete = await PlatformStats.findAll({
         order: [['id', 'DESC']],
         limit: excessStats

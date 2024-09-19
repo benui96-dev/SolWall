@@ -72,23 +72,23 @@ body {
   }
   
   .ck-editor__editable_inline {
-    color: black; /* Couleur du texte */
-    background-color: #333; /* Couleur de fond de l'éditeur */
+    color: black;
+    background-color: #333;
   }
 
   .message-content a {
-    color: #9945FF; /* Couleur des liens non visités */
+    color: #9945FF;
   }
   
   .message-content a:visited {
-    color: #9945FF; /* Couleur des liens visités */
+    color: #9945FF;
   }
   
   .message-content a:hover {
-    text-decoration: underline; /* Souligner les liens au survol */
+    text-decoration: underline;
   }
   
   .message-content a:active {
-    color: #7a32b1; /* Couleur des liens lorsqu'ils sont cliqués */
+    color: #7a32b1;
   }
   
