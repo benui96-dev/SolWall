@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const sequelize = require('./src/sequelize');
 const Message = require('./src/models/Message');
-const PlatformStats = require('./src/models/PlatformStats'); // Import du modèle PlatformStats
+const PlatformStats = require('./src/models/PlatformStats');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,11 +18,9 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Servir les fichiers statiques de "build"
 app.use(express.static(path.join(__dirname, 'build')));
 
 // Rediriger toutes les routes vers index.html (React Router)
@@ -30,20 +28,48 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-// Nettoyage des anciens messages (limite à 500)
-const cleanOldMessages = async () => {
+const { Op } = require('sequelize');
+
+const cleanOldMessagesAndStats = async () => {
   try {
+    // Nettoyage des anciens messages
     const messageCount = await Message.count();
-    if (messageCount > 500) {
-      const excess = messageCount - 500;
-      await Message.destroy({
-        where: {},
-        order: [['id', 'ASC']],
+    if (messageCount > 2) {
+      const excess = messageCount - 2;
+      const messagesToDelete = await Message.findAll({
+        order: [['id', 'DESC']], 
         limit: excess
+      });
+
+      const idsToDelete = messagesToDelete.map(msg => msg.id);
+      await Message.destroy({
+        where: {
+          id: {
+            [Op.notIn]: idsToDelete
+          }
+        }
+      });
+    }
+
+    const statsCount = await PlatformStats.count();
+    if (statsCount > 2) {
+      const excessStats = statsCount - 2;
+      const statsToDelete = await PlatformStats.findAll({
+        order: [['id', 'DESC']],
+        limit: excessStats
+      });
+
+      const idsToDeleteStats = statsToDelete.map(stat => stat.id);
+      await PlatformStats.destroy({
+        where: {
+          id: {
+            [Op.notIn]: idsToDeleteStats
+          }
+        }
       });
     }
   } catch (error) {
-    console.error('Error cleaning old messages:', error);
+    console.error('Error cleaning old messages and platform stats:', error);
   }
 };
 
@@ -60,12 +86,15 @@ const updatePlatformStats = async (newMessage) => {
       platformFees: newPlatformFees,
       messageCount: newMessageCount
     });
+
+    io.emit('platformStats', { platformFees: newPlatformFees, messageCount: newMessageCount });
+
   } catch (error) {
     console.error('Error updating platform stats:', error);
   }
 };
 
-// Routes API pour gérer les messages
+
 app.get('/messages', async (req, res) => {
   try {
     const messages = await Message.findAll();
@@ -84,25 +113,13 @@ app.get('/messages/count', async (req, res) => {
   }
 });
 
-// Route API pour obtenir les statistiques
-app.get('/platform-stats', async (req, res) => {
-  try {
-    const stats = await PlatformStats.findOne({
-      order: [['createdAt', 'DESC']]
-    });
-    res.json(stats || { platformFees: 0, messageCount: 0 });
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching platform stats' });
-  }
-});
-
 app.post('/messages', async (req, res) => {
   const { message, signature, solscanLink } = req.body;
   try {
     const newMessage = await Message.create({ message, signature, solscanLink });
 
-    await cleanOldMessages();
-    await updatePlatformStats(newMessage); // Mettre à jour les statistiques après chaque ajout de message
+    await cleanOldMessagesAndStats();
+    await updatePlatformStats(newMessage);
 
     io.emit('message', newMessage);
     res.status(201).json(newMessage);
@@ -111,12 +128,20 @@ app.post('/messages', async (req, res) => {
   }
 });
 
-// WebSocket pour gérer les messages en temps réel
 io.on('connection', async (socket) => {
   try {
-    // Récupérer tous les messages dès qu'un utilisateur se connecte
     const messages = await Message.findAll();
     socket.emit('allMessages', messages);
+
+    const stats = await PlatformStats.findOne({
+      order: [['createdAt', 'DESC']],
+    });
+
+    socket.emit('platformStats', {
+      platformFees: stats ? stats.platformFees : 0,
+      messageCount: stats ? stats.messageCount : 0,
+    });
+
   } catch (error) {
     socket.emit('error', 'Error retrieving messages');
   }
@@ -128,7 +153,6 @@ io.on('connection', async (socket) => {
   socket.on('disconnect', () => {});
 });
 
-// Démarrage du serveur après la synchronisation de Sequelize
 sequelize.sync().then(() => {
   server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

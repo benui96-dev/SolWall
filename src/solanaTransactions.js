@@ -72,7 +72,7 @@
     }
 
     const accountData = Buffer.from(accountInfo.data);
-    const amount = accountData.readBigUInt64LE(64); // La position peut varier; vérifiez selon le layout
+    const amount = accountData.readBigUInt64LE(64);
     return Number(amount) / Math.pow(10, TOKEN_DECIMALS);
   };
 

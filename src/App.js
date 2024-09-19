@@ -40,11 +40,6 @@ const App = () => {
         const response = await fetch('http://localhost:5000/messages');
         const data = await response.json();
         setMessages(data.reverse());
-
-        const countResponse = await fetch('http://localhost:5000/platform-stats');
-        const countData = await countResponse.json();
-        setMessageCount(countData.messageCount || 0);
-        setPlatformFees(countData.platformFees || 0);
       } catch (error) {
         console.error('Error retrieving messages and stats:', error);
       }
@@ -56,8 +51,6 @@ const App = () => {
       setMessages((prevMessages) => {
         const exists = prevMessages.some(msg => msg.signature === message.signature);
         if (!exists) {
-          setMessageCount((prevCount) => prevCount + 1);
-          setPlatformFees((prevFees) => prevFees + 0.0001);
           return [message, ...prevMessages];
         }
         return prevMessages;
@@ -68,9 +61,15 @@ const App = () => {
       setMessages(allMessages.reverse());
     });
 
+    socket.on('platformStats', (stats) => {
+      setPlatformFees(stats.platformFees);
+      setMessageCount(stats.messageCount);
+    });
+
     return () => {
       socket.off('message');
       socket.off('allMessages');
+      socket.off('platformStats');
     };
   }, []);
 
@@ -256,13 +255,12 @@ const App = () => {
           </div>
         </div>
 
-        {/* Widget CoinMarketCap */}
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
-          justifyContent: 'center', // Centre verticalement
-          alignItems: 'center',      // Centre horizontalement
-          height: '22vh',           // Hauteur pleine page
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '22vh',
           backgroundColor: 'black', 
           color: '#14F195', 
           overflow: 'hidden' 
@@ -271,7 +269,6 @@ const App = () => {
         </div>
       </div>
 
-      {/* Partie droite */}
       <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column-reverse' }}>
         <h2 style={{ textAlign: 'center', fontSize: '1em', marginBottom: '0px' }}>
           💬 Total number of messages: {messageCount}&nbsp;
@@ -282,8 +279,8 @@ const App = () => {
           borderRadius: '5px',
           padding: '10px',
           backgroundColor: '#222',
-          color: '#14F195', // Couleur du texte
-          overflowY: 'auto', // Ajoutez un défilement vertical si nécessaire
+          color: '#14F195',
+          overflowY: 'auto',
         }}>
           {messages.map((msg, index) => (
             <div key={index} className="message-content" style={{ marginBottom: '5px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
