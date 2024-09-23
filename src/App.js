@@ -9,8 +9,10 @@ import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { Editor } from '@tinymce/tinymce-react';
 import './styles.css';
 
-//const socket = io('http://localhost:5000');
-const socket = io('http://solwall.live:5000');
+//DEV const socket = io('http://localhost:5000');
+const socket = io('https://solwall.live', {
+  transports: ['websocket', 'polling']
+});
 
 const getTextWithoutUrls = (htmlContent) => {
   const tempElement = document.createElement('div');
@@ -38,7 +40,8 @@ const App = () => {
   useEffect(() => {
     const fetchMessagesAndStats = async () => {
       try {
-        const response = await fetch('http://localhost:5000/messages');
+        //DEV const response = await fetch('http://localhost:5000/messages');
+        const response = await fetch('https://solwall.live/messages');
         const data = await response.json();
         setMessages(data.reverse());
       } catch (error) {
@@ -96,7 +99,8 @@ const App = () => {
         solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
       };
 
-      await fetch('http://localhost:5000/messages', {
+      //DEV await fetch('http://localhost:5000/messages', {
+      await fetch('https://solwall.live/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

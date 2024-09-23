@@ -11,7 +11,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    //DEV origin: "*",
+    origin: "https://solwall.live",
     methods: ["GET", "POST"]
   }
 });
@@ -22,10 +23,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'build')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
 
 const { Op } = require('sequelize');
 
@@ -155,4 +152,8 @@ sequelize.sync().then(() => {
   server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
