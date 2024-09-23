@@ -9,7 +9,8 @@ import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { Editor } from '@tinymce/tinymce-react';
 import './styles.css';
 
-const socket = io('http://localhost:5000');
+//const socket = io('http://localhost:5000');
+const socket = io('http://solwall.live:5000');
 
 const getTextWithoutUrls = (htmlContent) => {
   const tempElement = document.createElement('div');
