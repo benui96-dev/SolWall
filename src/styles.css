@@ -92,3 +92,12 @@ body {
     color: #7a32b1;
   }
   
+  @media (max-width: 768px) {
+    .app-logo {
+      display: none;
+    }
+  
+    .coinmarketcap-currency-widget {
+      display: none;
+    }
+  } 
