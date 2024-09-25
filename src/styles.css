@@ -135,10 +135,4 @@ body {
       flex-direction: column;
     }
 
-    .project-info {
-      order: 1; /* Dernier sur les écrans plus petits */
-    }
-    .editor-container {
-      order: 0; /* Position normale */
-    }
   } 
