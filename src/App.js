@@ -135,10 +135,10 @@ const App = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', backgroundColor: 'black', color: '#14F195', overflow: 'hidden' }}>
-      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box' }}>
+    <div className='app-container' style={{ display: 'flex', height: '100vh', backgroundColor: 'black', color: '#14F195' }}>
+      <div className='left-column'>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <img src="/logo.jpg" alt="Logo" className="app-logo" style={{ width: '100%', margin: '20px auto' }} />
+          <img src="/logo.jpg" alt="Logo" className="app-logo" style={{ width: '50%', margin: '20px auto' }} />
           <p style={{ color: '#14F195', fontSize: '1.2em', marginTop: '10px' }}>
             Write your message for eternity on chain 💫<br />
             Powered by Solana 🔗 & Phantom 👻
@@ -148,90 +148,92 @@ const App = () => {
           </WalletModalProvider>
         </div>
 
-        {connected && (
-          <>
-            <p style={{ textAlign: 'center', marginBottom: '10px' }}>Wallet ID: {publicKey.toBase58()}</p>
-            <div style={{ marginBottom: '10px' }}>
-              <Editor
-                init={{
-                  height: 150,
-                  menubar: false,
-                  plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount emoticons',
-                  toolbar: 'undo redo | bold italic | emoticons | link | removeformat',
-                  content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-                  toolbar_mode: 'floating',
-                  link_context_toolbar: true,
-                  link_title: false,
-                  setup: (editor) => {
-                    editor.on('PreInit', function() {
-                      editor.ui.registry.addButton('link', {
-                        icon: 'link',
-                        tooltip: 'Insert/edit link',
-                        onAction: () => {
-                          editor.windowManager.open({
-                            title: 'Insert/Edit Link',
-                            body: {
-                              type: 'panel',
-                              items: [
-                                {
-                                  type: 'input', 
-                                  name: 'url', 
-                                  label: 'URL',
-                                  placeholder: 'Enter the URL'
-                                }
-                              ]
-                            },
-                            buttons: [
-                              {
-                                text: 'Cancel',
-                                type: 'cancel'
+        <div className='editor-container'>
+          {connected && (
+            <>
+              <p style={{ textAlign: 'center', marginBottom: '10px' }}>Wallet ID: {publicKey.toBase58()}</p>
+              <div style={{ marginBottom: '10px' }}>
+                <Editor
+                  init={{
+                    height: 150,
+                    menubar: false,
+                    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount emoticons',
+                    toolbar: 'undo redo | bold italic | emoticons | link | removeformat',
+                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+                    toolbar_mode: 'floating',
+                    link_context_toolbar: true,
+                    link_title: false,
+                    setup: (editor) => {
+                      editor.on('PreInit', function() {
+                        editor.ui.registry.addButton('link', {
+                          icon: 'link',
+                          tooltip: 'Insert/edit link',
+                          onAction: () => {
+                            editor.windowManager.open({
+                              title: 'Insert/Edit Link',
+                              body: {
+                                type: 'panel',
+                                items: [
+                                  {
+                                    type: 'input', 
+                                    name: 'url', 
+                                    label: 'URL',
+                                    placeholder: 'Enter the URL'
+                                  }
+                                ]
                               },
-                              {
-                                text: 'Save',
-                                type: 'submit',
-                                primary: true
+                              buttons: [
+                                {
+                                  text: 'Cancel',
+                                  type: 'cancel'
+                                },
+                                {
+                                  text: 'Save',
+                                  type: 'submit',
+                                  primary: true
+                                }
+                              ],
+                              onSubmit: (api) => {
+                                const data = api.getData();
+                                editor.insertContent(`<a href="${data.url}" target="_blank" rel="noopener noreferrer">${data.url}</a>`);
+                                api.close();
                               }
-                            ],
-                            onSubmit: (api) => {
-                              const data = api.getData();
-                              editor.insertContent(`<a href="${data.url}" target="_blank" rel="noopener noreferrer">${data.url}</a>`);
-                              api.close();
-                            }
-                          });
-                        }
+                            });
+                          }
+                        });
                       });
-                    });
-                  }
-                }}
-                value={editorData}
-                onEditorChange={handleEditorChange}
+                    }
+                  }}
+                  value={editorData}
+                  onEditorChange={handleEditorChange}
+                  style={{
+                    height: '200px',
+                    borderRadius: '5px',
+                    backgroundColor: '#333',
+                  }}
+                />
+                <p style={{ textAlign: 'center' }}>Remaining characters: {75 - visibleTextLength}</p>
+              </div>
+              <button
+                onClick={handleSendTransaction}
+                disabled={!connected || visibleTextLength > 75}
                 style={{
-                  height: '200px',
+                  padding: '10px',
+                  backgroundColor: '#9945FF',
+                  color: 'white',
+                  border: 'none',
+                  cursor: connected && visibleTextLength <= 75 ? 'pointer' : 'not-allowed',
+                  width: '100%',
                   borderRadius: '5px',
-                  backgroundColor: '#333',
                 }}
-              />
-              <p style={{ textAlign: 'center' }}>Remaining characters: {75 - visibleTextLength}</p>
-            </div>
-            <button
-              onClick={handleSendTransaction}
-              disabled={!connected || visibleTextLength > 75}
-              style={{
-                padding: '10px',
-                backgroundColor: '#9945FF',
-                color: 'white',
-                border: 'none',
-                cursor: connected && visibleTextLength <= 75 ? 'pointer' : 'not-allowed',
-                width: '100%',
-                borderRadius: '5px',
-              }}
-            >
-              Send message
-            </button>
-          </>
-        )}
+              >
+                Send message
+              </button>
+            </>
+          )}
+        </div>
 
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <div className='project-info' style={{ marginTop: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
             Contract: 
             <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>xxx</a>
@@ -260,21 +262,20 @@ const App = () => {
           </div>
         </div>
 
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '22vh',
-          backgroundColor: 'black', 
-          color: '#14F195', 
-          overflow: 'hidden' 
+          backgroundColor: 'black',
+          color: '#14F195',
+          overflow: 'visible'
         }}>
           <div className="coinmarketcap-currency-widget" data-currencyid="5426" data-base="USD" data-secondary="" data-ticker="true" data-rank="true" data-marketcap="true" data-volume="true" data-statsticker="true" data-stats="USD"></div>
         </div>
       </div>
 
-      <div style={{ width: '50%', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column-reverse' }}>
+      <div className='right-column'>
         <h2 style={{ textAlign: 'center', fontSize: '1em', marginBottom: '0px' }}>
           💬 Total number of messages: {messageCount}&nbsp;
           💵 Platform fees generated: {platformFees.toFixed(4)} SOL
@@ -292,10 +293,10 @@ const App = () => {
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.message, { ALLOWED_TAGS: ['a', 'b', 'i', 'strong', 'em'], ALLOWED_ATTR: ['href', 'target', 'rel'] }) }} style={{ flex: 1 }} />
               <a href={msg.solscanLink} target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF', marginLeft: '10px', fontSize: '0.8em' }}>
                 <FontAwesomeIcon icon={faExternalLinkAlt} /> See on Solscan
-            </a>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+              </a>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
       </div>
     </div>
