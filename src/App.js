@@ -276,9 +276,9 @@ const App = () => {
       </div>
 
       <div className='right-column'>
-        <h2 style={{ textAlign: 'center', fontSize: '1em', marginBottom: '0px' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '0.8em', marginBottom: '0px' }}>
           💬 Total number of messages: {messageCount}&nbsp;
-          💵 Platform fees generated: {platformFees.toFixed(4)} SOL
+          💵 Platform has generated: {platformFees.toFixed(4)} SOL in fees
         </h2>
         <div style={{
           flex: 1,
