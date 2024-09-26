@@ -282,10 +282,13 @@ const App = () => {
             Project:
             <a href="https://whitepaper.solwall.live/sol-wall-project/user-guide" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>User guide</a>
             <a href="https://whitepaper.solwall.live" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>White paper</a>
+            {/* <a href="https://rugcheck.xyz/tokens/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>RugCheck</a> */}
+            <a href="mailto:team@solwall.live" style={{ color: '#9945FF' }}>Contact</a>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            Social links:
             <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Twitter</a>
             <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Telegram</a>
-            <a href="https://rugcheck.xyz/tokens/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>RugCheck</a>
-            <a href="mailto:" style={{ color: '#9945FF' }}>Contact</a>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
             Buy on:
