@@ -301,7 +301,7 @@ const App = () => {
             <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dextools</a>
             <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dexscreener</a>
             <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Birdeye</a>
-            <a href="#" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>CoinMarketCap</a>
+            {/* <a href="#" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>CoinMarketCap</a> */}
           </div>
         </div>
 
