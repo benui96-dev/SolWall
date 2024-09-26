@@ -130,11 +130,7 @@ body {
       font-size: 14px; /* Ajuste cette valeur selon ton besoin */
     }
 
-    div[style*="display: flex"] {
-      flex-direction: column; /* Affiche les éléments les uns en dessous des autres */
-      gap: 0; /* Ajuster l'espace entre les éléments */
-      margin-bottom: 10px;
-    }
+  
 
     .app-container {
       flex-direction: column;
