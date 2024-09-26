@@ -43,32 +43,26 @@ const App = () => {
     const handleResize = () => {
       const windowWidth = $(window).width();
   
-      if (windowWidth <= 768) { // Vue mobile
+      if (windowWidth <= 768) {
         if ($('.right-column').children().length > 0) {
-          // Copier le contenu de right-column à move-here si nécessaire
           $('.move-here').html($('.right-column').clone().html());
-          // Vider la colonne de droite
           $('.right-column').empty();
         }
-      } else { // Vue bureau
+      } else {
         if ($('.move-here').children().length > 0) {
-          // Copier le contenu de move-here à right-column si nécessaire
           $('.right-column').html($('.move-here').clone().html());
-          // Vider move-here
           $('.move-here').empty();
         }
       }
     };
   
-    // Attacher l'écouteur d'événements
     $(window).resize(handleResize);
   
     if (!initialRender.current) {
       handleResize();
     }
-    initialRender.current = false; // Définir à false après le premier rendu
+    initialRender.current = false;
   
-    // Cleanup lors du démontage du composant
     return () => {
       $(window).off('resize', handleResize);
     };
