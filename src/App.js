@@ -38,6 +38,7 @@ const App = () => {
   const [platformFees, setPlatformFees] = useState(0);
   const messagesEndRef = useRef(null);
   const initialRender = useRef(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -112,6 +113,8 @@ const App = () => {
   const handleSendTransaction = async () => {
     if (!connected || !editorData) return;
 
+    setLoading(true);
+
     try {
       const balance = await getTokenBalance(publicKey);
       const burnAmount = 1;
@@ -142,6 +145,8 @@ const App = () => {
 
       socket.emit('message', newMessage);
       setEditorData('');
+
+      setLoading(false);
     } catch (error) {
       console.error('Error sending transaction:', error);
     }
@@ -259,7 +264,11 @@ const App = () => {
                   borderRadius: '5px',
                 }}
               >
-                Send message
+                {loading ? (
+                  <div className="loader" style={{ margin: '0 auto', width: '20px', height: '20px', border: '3px solid #f3f3f3', borderTop: '3px solid #9945FF', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                ) : (
+                  'Send message'
+                )}
               </button>
             </>
           )}
