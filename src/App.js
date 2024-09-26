@@ -10,8 +10,7 @@ import { Editor } from '@tinymce/tinymce-react';
 import './styles.css';
 import $ from 'jquery';
 
-const socket = io('http://localhost:5000', {
-//const socket = io('https://solwall.live', {
+const socket = io(process.env.REACT_APP_ENV, {
   transports: ['websocket', 'polling']
 });
 
@@ -73,8 +72,7 @@ const App = () => {
   useEffect(() => {
     const fetchMessagesAndStats = async () => {
       try {
-        const response = await fetch('http://localhost:5000/messages');
-        //const response = await fetch('https://solwall.live/messages');
+        const response = await fetch(process.env.REACT_APP_GET_MESSAGES);
         const data = await response.json();
         setMessages(data.reverse());
       } catch (error) {
@@ -131,11 +129,10 @@ const App = () => {
       const newMessage = {
         message: sanitizedData,
         signature: signature,
-        solscanLink: `https://solscan.io/tx/${signature}?cluster=testnet`,
+        solscanLink: process.env.REACT_APP_SOLSCAN_URL,
       };
 
-      await fetch('http://localhost:5000/messages', {
-      //await fetch('https://solwall.live/messages', {
+      await fetch(process.env.REACT_APP_GET_MESSAGES, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -319,7 +316,7 @@ const App = () => {
       </div>
 
       <div className='right-column'>
-        <h2 style={{ textAlign: 'center', fontSize: '0.8em', marginBottom: '0px' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '0.8em', marginBottom: '2px' }}>
           💬 Total number of messages: {messageCount}&nbsp;
           💵 Platform has generated: {platformFees.toFixed(4)} SOL in fees
         </h2>
@@ -327,6 +324,7 @@ const App = () => {
           flex: 1,
           borderRadius: '5px',
           padding: '10px',
+          paddingTop: '1px',
           backgroundColor: '#222',
           color: '#14F195',
           overflowY: 'auto',
