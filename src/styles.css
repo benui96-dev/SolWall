@@ -115,7 +115,6 @@ body {
     100% { transform: rotate(360deg); }
   }
   
-  
   @media (max-width: 768px) {
   
     .left-column{

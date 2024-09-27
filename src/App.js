@@ -36,7 +36,6 @@ const App = () => {
   const [messageCount, setMessageCount] = useState(0);
   const [platformFees, setPlatformFees] = useState(0);
   const messagesEndRef = useRef(null);
-  const initialRender = useRef(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -55,13 +54,10 @@ const App = () => {
         }
       }
     };
+
+    handleResize();
   
     $(window).resize(handleResize);
-  
-    if (!initialRender.current) {
-      handleResize();
-    }
-    initialRender.current = false;
   
     return () => {
       $(window).off('resize', handleResize);
