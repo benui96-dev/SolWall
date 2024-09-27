@@ -37,11 +37,13 @@ const App = () => {
   const [platformFees, setPlatformFees] = useState(0);
   const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [isData1Loaded, setIsData1Loaded] = useState(false);
+  const [isData2Loaded, setIsData2Loaded] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
       const windowWidth = $(window).width();
-  
+
       if (windowWidth <= 768) {
         if ($('.right-column').children().length > 0) {
           $('.move-here').html($('.right-column').clone().html());
@@ -55,14 +57,16 @@ const App = () => {
       }
     };
 
-    handleResize();
-  
+    if (isData1Loaded && isData2Loaded) {
+      handleResize();
+    }
+
     $(window).resize(handleResize);
-  
+
     return () => {
       $(window).off('resize', handleResize);
     };
-  }, []);
+  }, [isData1Loaded, isData2Loaded]);
   
 
   useEffect(() => {
@@ -90,11 +94,13 @@ const App = () => {
 
     socket.on('allMessages', (allMessages) => {
       setMessages(allMessages.reverse());
+      setIsData1Loaded(true);
     });
 
     socket.on('platformStats', (stats) => {
       setPlatformFees(stats.platformFees);
       setMessageCount(stats.messageCount);
+      setIsData2Loaded(true);
     });
 
     return () => {
