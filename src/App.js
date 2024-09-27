@@ -11,7 +11,10 @@ import './styles.css';
 import $ from 'jquery';
 
 const socket = io(process.env.REACT_APP_ENV, {
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
 });
 
 const getTextWithoutUrls = (htmlContent) => {
