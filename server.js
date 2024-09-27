@@ -12,8 +12,9 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     //DEV origin: "*",
-    origin: "https://solwall.live",
-    methods: ["GET", "POST"]
+    origin: ["https://solwall.live", "https://www.solwall.live"],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
