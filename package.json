@@ -27,6 +27,7 @@
     "dompurify": "^3.1.6",
     "express": ">=4.20.0",
     "jquery": "^3.7.1",
+    "nanoid": "^5.0.7",
     "nth-check": ">=2.0.1",
     "path-to-regexp": ">=0.1.10",
     "postcss": ">=8.4.31",

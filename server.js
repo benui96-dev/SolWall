@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    //DEV origin: "*",
+    //origin: "*",
     origin: ["https://solwall.live", "https://www.solwall.live"],
     methods: ["GET", "POST"],
     credentials: true
@@ -68,7 +68,12 @@ app.get('/messages/count', async (req, res) => {
 app.post('/messages', async (req, res) => {
   const { message, signature, solscanLink } = req.body;
   try {
-    const newMessage = await Message.create({ message, signature, solscanLink });
+
+    const { customAlphabet } = await import('nanoid');
+    const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 5);
+    const shortId = nanoid();
+
+    const newMessage = await Message.create({ message, signature, solscanLink, shortId });
 
     await updatePlatformStats(newMessage);
 
@@ -76,6 +81,23 @@ app.post('/messages', async (req, res) => {
     res.status(201).json(newMessage);
   } catch (error) {
     res.status(500).json({ error: 'Error adding message' });
+  }
+});
+
+app.get('/:shortId', async (req, res) => {
+  const { shortId } = req.params;
+
+  try {
+    const message = await Message.findOne({ where: { shortId } });
+
+    if (!message) {
+      return res.status(404).send('Not found');
+    }
+
+    return res.redirect(message.solscanLink);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send('Internal Server Error');
   }
 });
 

@@ -14,6 +14,11 @@ const Message = sequelize.define('Message', {
   solscanLink: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  shortId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
   }
 });
 

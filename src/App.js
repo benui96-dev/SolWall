@@ -11,10 +11,7 @@ import { Editor } from '@tinymce/tinymce-react';
 import './styles.css';
 
 const socket = io(process.env.REACT_APP_ENV, {
-  transports: ['websocket', 'polling'],
-  reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000,
+  transports: ['websocket', 'polling']
 });
 
 const getTextWithoutUrls = (htmlContent) => {
@@ -38,6 +35,7 @@ const App = () => {
   const [visibleTextLength, setVisibleTextLength] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [platformFees, setPlatformFees] = useState(0);
+  const [shortId, setShortId] = useState(''); // Nouvel état pour le lien court
   const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -51,6 +49,7 @@ const App = () => {
     if (!connected || !editorData) return;
 
     setLoading(true);
+    setShortId(''); // Réinitialiser le shortId avant d'envoyer la transaction
 
     try {
       const balance = await getTokenBalance(publicKey);
@@ -71,7 +70,7 @@ const App = () => {
         solscanLink: process.env.REACT_APP_SOLSCAN_URL,
       };
 
-      await fetch(process.env.REACT_APP_GET_MESSAGES, {
+      const response = await fetch(process.env.REACT_APP_GET_MESSAGES, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,9 +78,15 @@ const App = () => {
         body: JSON.stringify(newMessage),
       });
 
+      const result = await response.json();
+
+      // Extraire le shortId de la réponse
+      if (result.shortId) {
+        setShortId(`https://solwall.live/${result.shortId}`);
+      }
+
       socket.emit('message', newMessage);
       setEditorData('');
-
       setLoading(false);
     } catch (error) {
       console.error('Error sending transaction:', error);
@@ -255,6 +260,11 @@ const App = () => {
                   'Send message'
                 )}
               </button>
+              {shortId && (
+                <p style={{ textAlign: 'center', marginTop: '10px' }}>
+                  Your link: <a href={shortId} target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>{shortId} <FontAwesomeIcon icon={faExternalLinkAlt} /></a>
+                </p>
+              )}
             </>
           )}
         </div>
