@@ -11,8 +11,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
-    //origin: ["https://solwall.live", "https://www.solwall.live"],
+    //origin: "*",
+    origin: ["https://solwall.live", "https://www.solwall.live"],
     methods: ["GET", "POST"],
     credentials: true
   }
