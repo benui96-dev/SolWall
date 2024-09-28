@@ -25,50 +25,6 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'build')));
 
-const { Op } = require('sequelize');
-
-const cleanOldMessagesAndStats = async () => {
-  try {
-    const messageCount = await Message.count();
-    if (messageCount > 150) {
-      const excess = messageCount - 150;
-      const messagesToDelete = await Message.findAll({
-        order: [['id', 'DESC']], 
-        limit: excess
-      });
-
-      const idsToDelete = messagesToDelete.map(msg => msg.id);
-      await Message.destroy({
-        where: {
-          id: {
-            [Op.notIn]: idsToDelete
-          }
-        }
-      });
-    }
-
-    const statsCount = await PlatformStats.count();
-    if (statsCount > 150) {
-      const excessStats = statsCount - 150;
-      const statsToDelete = await PlatformStats.findAll({
-        order: [['id', 'DESC']],
-        limit: excessStats
-      });
-
-      const idsToDeleteStats = statsToDelete.map(stat => stat.id);
-      await PlatformStats.destroy({
-        where: {
-          id: {
-            [Op.notIn]: idsToDeleteStats
-          }
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error cleaning old messages and platform stats:', error);
-  }
-};
-
 const updatePlatformStats = async (newMessage) => {
   try {
     const currentStats = await PlatformStats.findOne({
@@ -114,7 +70,6 @@ app.post('/messages', async (req, res) => {
   try {
     const newMessage = await Message.create({ message, signature, solscanLink });
 
-    await cleanOldMessagesAndStats();
     await updatePlatformStats(newMessage);
 
     io.emit('message', newMessage);

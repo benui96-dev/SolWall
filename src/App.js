@@ -3,12 +3,12 @@ import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-r
 import { useWallet } from '@solana/wallet-adapter-react';
 import io from 'socket.io-client';
 import { sendTransactionWithMemo, getTokenBalance } from './solanaTransactions';
+import ProjectInfo from './ProjectInfo';
 import DOMPurify from 'dompurify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { Editor } from '@tinymce/tinymce-react';
 import './styles.css';
-import $ from 'jquery';
 
 const socket = io(process.env.REACT_APP_ENV, {
   transports: ['websocket', 'polling'],
@@ -40,78 +40,12 @@ const App = () => {
   const [platformFees, setPlatformFees] = useState(0);
   const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
-  const [isData1Loaded, setIsData1Loaded] = useState(false);
-  const [isData2Loaded, setIsData2Loaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const windowWidth = $(window).width();
-
-      if (windowWidth <= 768) {
-        if ($('.right-column').children().length > 0) {
-          $('.move-here').html($('.right-column').clone().html());
-          $('.right-column').empty();
-        }
-      } else {
-        if ($('.move-here').children().length > 0) {
-          $('.right-column').html($('.move-here').clone().html());
-          $('.move-here').empty();
-        }
-      }
-    };
-
-    if (isData1Loaded && isData2Loaded) {
-      handleResize();
-    }
-
-    $(window).resize(handleResize);
-
-    return () => {
-      $(window).off('resize', handleResize);
-    };
-  }, [isData1Loaded, isData2Loaded]);
-  
-
-  useEffect(() => {
-    const fetchMessagesAndStats = async () => {
-      try {
-        const response = await fetch(process.env.REACT_APP_GET_MESSAGES);
-        const data = await response.json();
-        setMessages(data.reverse());
-      } catch (error) {
-        console.error('Error retrieving messages and stats:', error);
-      }
-    };
-
-    fetchMessagesAndStats();
-
-    socket.on('message', (message) => {
-      setMessages((prevMessages) => {
-        const exists = prevMessages.some(msg => msg.signature === message.signature);
-        if (!exists) {
-          return [message, ...prevMessages];
-        }
-        return prevMessages;
-      });
-    });
-
-    socket.on('allMessages', (allMessages) => {
-      setMessages(allMessages.reverse());
-      setIsData1Loaded(true);
-    });
-
-    socket.on('platformStats', (stats) => {
-      setPlatformFees(stats.platformFees);
-      setMessageCount(stats.messageCount);
-      setIsData2Loaded(true);
-    });
-
-    return () => {
-      socket.off('message');
-      socket.off('allMessages');
-      socket.off('platformStats');
-    };
-  }, []);
+  const checkIfMobile = () => {
+    const isMobileDevice = window.matchMedia("(max-width: 768px)").matches;
+    setIsMobile(isMobileDevice);
+  };
 
   const handleSendTransaction = async () => {
     if (!connected || !editorData) return;
@@ -154,6 +88,45 @@ const App = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchMessagesAndStats = async () => {
+      try {
+        const response = await fetch(process.env.REACT_APP_GET_MESSAGES);
+        const data = await response.json();
+        setMessages(data.reverse());
+      } catch (error) {
+        console.error('Error retrieving messages and stats:', error);
+      }
+    };
+
+    fetchMessagesAndStats();
+
+    socket.on('message', (message) => {
+      setMessages((prevMessages) => {
+        const exists = prevMessages.some(msg => msg.signature === message.signature);
+        if (!exists) {
+          return [message, ...prevMessages];
+        }
+        return prevMessages;
+      });
+    });
+
+    socket.on('allMessages', (allMessages) => {
+      setMessages(allMessages.reverse());
+    });
+
+    socket.on('platformStats', (stats) => {
+      setPlatformFees(stats.platformFees);
+      setMessageCount(stats.messageCount);
+    });
+
+    return () => {
+      socket.off('message');
+      socket.off('allMessages');
+      socket.off('platformStats');
+    };
+  }, []);
+
   const handleEditorChange = (content, editor) => {
     const textWithoutUrls = getTextWithoutUrls(content);
     if (textWithoutUrls.length <= 75) {
@@ -161,6 +134,16 @@ const App = () => {
       setVisibleTextLength(textWithoutUrls.length);
     }
   };
+
+  useEffect(() => {
+    checkIfMobile();
+
+    window.addEventListener('resize', checkIfMobile);
+
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -203,7 +186,7 @@ const App = () => {
                     link_context_toolbar: true,
                     link_title: false,
                     setup: (editor) => {
-                      editor.on('PreInit', function() {
+                      editor.on('PreInit', function () {
                         editor.ui.registry.addButton('link', {
                           icon: 'link',
                           tooltip: 'Insert/edit link',
@@ -214,8 +197,8 @@ const App = () => {
                                 type: 'panel',
                                 items: [
                                   {
-                                    type: 'input', 
-                                    name: 'url', 
+                                    type: 'input',
+                                    name: 'url',
                                     label: 'URL',
                                     placeholder: 'Enter the URL'
                                   }
@@ -276,51 +259,8 @@ const App = () => {
           )}
         </div>
 
-        <div className="move-here"></div>
+        {!isMobile && <ProjectInfo />}
 
-        <div className='project-info' style={{ marginTop: '20px', textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Contract: 
-            <a href="" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>xxx</a>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Project:
-            <a href="https://whitepaper.solwall.live/sol-wall-project/user-guide" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>User guide</a>
-            <a href="https://whitepaper.solwall.live" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>White paper</a>
-            {/* <a href="https://rugcheck.xyz/tokens/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>RugCheck</a> */}
-            <a href="mailto:team@solwall.live" style={{ color: '#9945FF' }}>Contact</a>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Social links:
-            <a href="https://x.com/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Twitter</a>
-            <a href="https://t.me/solwall_token" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Telegram</a>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Buy on:
-            <a href="https://jup.ag/swap/SOL-" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Jupiter</a>
-            <a href="https://raydium.io/swap/?from=11111111111111111111111111111111&to=" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Raydium</a>
-            <a href="https://www.orca.so/?outputCurrency=" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Orca</a>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-            Charts:
-            <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dextools</a>
-            <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dexscreener</a>
-            <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Birdeye</a>
-            {/* <a href="#" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>CoinMarketCap</a> */}
-          </div>
-        </div>
-
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'black',
-          color: '#14F195',
-          overflow: 'visible'
-        }}>
-          <div className="coinmarketcap-currency-widget" data-currencyid="5426" data-base="USD" data-secondary="" data-ticker="true" data-rank="true" data-marketcap="true" data-volume="true" data-statsticker="true" data-stats="USD"></div>
-        </div>
       </div>
 
       <div className='right-column'>
@@ -348,6 +288,9 @@ const App = () => {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {isMobile && <ProjectInfo />}
+
     </div>
   );
 };

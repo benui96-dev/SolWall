@@ -1,5 +1,4 @@
 const sequelize = require('./sequelize');
-const Message = require('./models/Message');
 
 const initializeDatabase = async () => {
   try {

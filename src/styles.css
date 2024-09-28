@@ -1,138 +1,146 @@
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #000;
-    color: #fff;
-  }
-  
-  .container {
-    display: flex;
-    height: 100vh;
-  }
-  
-  .left-panel {
-    flex: 1;
-    border-right: 1px solid #fff;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  
-  .right-panel {
-    flex: 2;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  
-  .header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  
-  .logo {
-    margin-left: 20px;
-  }
-  
-  .wallet-actions {
-    margin-bottom: 20px;
-  }
-  
-  .social-links {
-    margin-bottom: 20px;
-  }
-  
-  .social-links a {
-    display: block;
-    color: #fff;
-    margin: 5px 0;
-    text-decoration: none;
-  }
-  
-  .button {
-    width: 100%;
-    padding: 10px;
-    background-color: #007bff;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    margin-top: 10px;
-  }
-  
-  .button:hover {
-    background-color: #0056b3;
-  }
-  
-  .message-container {
-    padding: 10px;
-    border-bottom: 1px solid #fff;
-  }
-  
-  .message-content {
-    margin: 10px 0;
-  }
-  
-  .ck-editor__editable_inline {
-    color: black;
-    background-color: #333;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #000;
+  color: #fff;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.left-panel {
+  flex: 1;
+  border-right: 1px solid #fff;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.right-panel {
+  flex: 2;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.logo {
+  margin-left: 20px;
+}
+
+.wallet-actions {
+  margin-bottom: 20px;
+}
+
+.social-links {
+  margin-bottom: 20px;
+}
+
+.social-links a {
+  display: block;
+  color: #fff;
+  margin: 5px 0;
+  text-decoration: none;
+}
+
+.button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.button:hover {
+  background-color: #0056b3;
+}
+
+.message-container {
+  padding: 10px;
+  border-bottom: 1px solid #fff;
+}
+
+.message-content {
+  margin: 10px 0;
+}
+
+.ck-editor__editable_inline {
+  color: black;
+  background-color: #333;
+}
+
+.message-content a {
+  color: #9945FF;
+}
+
+.message-content a:visited {
+  color: #9945FF;
+}
+
+.message-content a:hover {
+  text-decoration: underline;
+}
+
+.message-content a:active {
+  color: #7a32b1;
+}
+
+.left-column {
+  width: 50%;
+  /* Largeur par défaut */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.right-column {
+  width: 50%;
+  /* Largeur par défaut */
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  /* Utilisation de flexbox */
+  flex-direction: column;
+  /* Orientation verticale */
+}
+
+.coinmarketcap-currency-widget {
+  margin: 10px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
   }
 
-  .message-content a {
-    color: #9945FF;
+  100% {
+    transform: rotate(360deg);
   }
-  
-  .message-content a:visited {
-    color: #9945FF;
-  }
-  
-  .message-content a:hover {
-    text-decoration: underline;
-  }
-  
-  .message-content a:active {
-    color: #7a32b1;
-  }
+}
+
+@media (max-width: 768px) {
 
   .left-column {
-    width: 50%; /* Largeur par défaut */
-    padding: 20px;
-    box-sizing: border-box;
+    width: 100%;
   }
 
   .right-column {
-    width: 50%; /* Largeur par défaut */
-    padding: 20px;
-    box-sizing: border-box;
-    display: flex; /* Utilisation de flexbox */
-    flex-direction: column; /* Orientation verticale */
+    width: 100%;
   }
 
-  .coinmarketcap-currency-widget {
-    margin: 10px;
+  body {
+    font-size: 14px;
+    /* Ajuste cette valeur selon ton besoin */
   }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  .app-container {
+    flex-direction: column;
   }
-  
-  @media (max-width: 768px) {
-  
-    .left-column{
-      width: 100%;
-    }
 
-    .right-column {
-      width: 100%;
-    }
-    
-    body {
-      font-size: 14px; /* Ajuste cette valeur selon ton besoin */
-    }
-
-  
-
-    .app-container {
-      flex-direction: column;
-    }
-
-  } 
+}
