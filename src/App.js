@@ -63,11 +63,12 @@ const App = () => {
 
       const sanitizedData = editorData;
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, sanitizedData);
+      const solscanLink = `https://solscan.io/tx/${signature}?cluster=testnet`;
 
       const newMessage = {
         message: sanitizedData,
         signature: signature,
-        solscanLink: process.env.REACT_APP_SOLSCAN_URL,
+        solscanLink: solscanLink,
       };
 
       const response = await fetch(process.env.REACT_APP_GET_MESSAGES, {
