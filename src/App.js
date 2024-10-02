@@ -35,7 +35,7 @@ const App = () => {
   const [visibleTextLength, setVisibleTextLength] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [platformFees, setPlatformFees] = useState(0);
-  const [shortId, setShortId] = useState(''); // Nouvel état pour le lien court
+  const [shortId, setShortId] = useState('');
   const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -49,7 +49,7 @@ const App = () => {
     if (!connected || !editorData) return;
 
     setLoading(true);
-    setShortId(''); // Réinitialiser le shortId avant d'envoyer la transaction
+    setShortId('');
 
     try {
       const balance = await getTokenBalance(publicKey);
@@ -81,7 +81,6 @@ const App = () => {
 
       const result = await response.json();
 
-      // Extraire le shortId de la réponse
       if (result.shortId) {
         setShortId(`https://solwall.live/${result.shortId}`);
       }
@@ -166,10 +165,25 @@ const App = () => {
     <div className='app-container' style={{ display: 'flex', height: '100vh', backgroundColor: 'black', color: '#14F195' }}>
       <div className='left-column'>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <video autoPlay loop muted className="app-logo" style={{ width: '50%', margin: '-55px auto' }}>
-            <source src="/logo_animation.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          {isMobile ? (
+            <img
+              src="/logo.jpg"
+              alt="Logo"
+              className="app-logo"
+              style={{ width: '50%', margin: '20px auto' }}
+            />
+          ) : (
+            <video
+              autoPlay
+              loop
+              muted
+              className="app-logo"
+              style={{ width: '50%', margin: '-55px auto' }}
+            >
+              <source src="/logo_animation.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          )}
           <p style={{ color: '#14F195', fontSize: '1.2em', marginTop: '10px' }}>
             Write your message for eternity on chain 💫<br />
             Powered by Solana 🔗 & Phantom 👻
