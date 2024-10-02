@@ -166,7 +166,10 @@ const App = () => {
     <div className='app-container' style={{ display: 'flex', height: '100vh', backgroundColor: 'black', color: '#14F195' }}>
       <div className='left-column'>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <img src="/logo.jpg" alt="Logo" className="app-logo" style={{ width: '50%', margin: '20px auto' }} />
+          <video autoPlay loop muted className="app-logo" style={{ width: '50%', margin: '-55px auto' }}>
+            <source src="/logo_animation.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
           <p style={{ color: '#14F195', fontSize: '1.2em', marginTop: '10px' }}>
             Write your message for eternity on chain 💫<br />
             Powered by Solana 🔗 & Phantom 👻
