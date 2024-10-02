@@ -30,15 +30,15 @@ const ProjectInfo = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                 Buy on:
-                <a href="https://jup.ag/swap/SOL-" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Jupiter</a>
-                <a href="https://raydium.io/swap/?from=11111111111111111111111111111111&to=" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Raydium</a>
-                <a href="https://www.orca.so/?outputCurrency=" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Orca</a>
+                <a href="https://jup.ag/swap/SOL-B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Jupiter</a>
+                <a href="https://raydium.io/swap/?from=11111111111111111111111111111111&to=B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Raydium</a>
+                <a href="https://www.orca.so/?outputCurrency=B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Orca</a>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                 Charts:
-                <a href="https://www.dextools.io/app/en/solana/pair-explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dextools</a>
-                <a href="https://dexscreener.com/solana/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dexscreener</a>
-                <a href="https://birdeye.so/token/" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Birdeye</a>
+                <a href="https://www.dextools.io/app/en/solana/pair-explorer/B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dextools</a>
+                <a href="https://dexscreener.com/solana/B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Dexscreener</a>
+                <a href="https://birdeye.so/token/B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>Birdeye</a>
             </div>
         </div>
             <div style={{
