@@ -14,7 +14,7 @@ const ProjectInfo = () => {
     return (
         <><div className='project-info' style={{ marginTop: isMobile ? '50px' : '20px', textAlign: isMobile ? 'left' : 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                Contract:
+                CA:
                 <a href="https://solscan.io/token/B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R" target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>B47jrQkyMsG7wEnri3iud4i5MQAaWQkgqTevrCU9Lj6R</a>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
