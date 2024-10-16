@@ -63,7 +63,7 @@ const App = () => {
 
       const sanitizedData = editorData;
       const signature = await sendTransactionWithMemo({ publicKey, sendTransaction }, sanitizedData);
-      const solscanLink = `https://solscan.io/tx/${signature}?cluster=testnet`;
+      const solscanLink = `https://solscan.io/tx/${signature}?cluster=devnet`;
 
       const newMessage = {
         message: sanitizedData,
