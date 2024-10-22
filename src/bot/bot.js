@@ -289,15 +289,7 @@ async function executeFrontRun(order, dex, marketOrPair) {
     console.log(`Executing front-run transaction on ${dex} at price: ${order.price} for amount: ${order.amount}`);
 
     // Récupérer le solde actuel de ton portefeuille
-    const walletBalance = await getWalletBalance(); // Fonction à définir qui récupère le solde en SOL
-    const maxPurchaseAmount = walletBalance * 0.1; // Limite d'achat à 10% du solde total (ajuste ce pourcentage selon ton besoin)
-
-    // Limiter l'achat au montant maximum défini
-    let purchaseAmount = order.amount;
-    if (purchaseAmount > maxPurchaseAmount) {
-        purchaseAmount = maxPurchaseAmount;
-        console.log(`Limiting purchase amount to ${purchaseAmount} SOL based on wallet balance.`);
-    }
+    const purchaseAmount = 0.1; // Montant fixe de 0.1 SOL pour chaque transaction
 
     let transaction;
 
@@ -339,16 +331,6 @@ async function executeFrontRun(order, dex, marketOrPair) {
         console.log(`Transaction réussie avec le hash: ${signature}`);
     } catch (error) {
         console.error("Erreur lors de l'exécution de la transaction:", error);
-    }
-}
-
-async function getWalletBalance() {
-    try {
-        const balance = await connection.getBalance(KEYPAIR.publicKey); // Récupère le solde en lamports
-        return balance / LAMPORTS_PER_SOL; // Convertir les lamports en SOL
-    } catch (error) {
-        console.error("Erreur lors de la récupération du solde:", error);
-        return 0;
     }
 }
 
