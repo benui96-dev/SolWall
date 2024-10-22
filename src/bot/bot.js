@@ -8,6 +8,12 @@ const {
 const { Market, OpenOrders } = require('@project-serum/serum');
 const axios = require('axios');
 const BN = require('bn.js');
+const pLimit = require('p-limit');
+
+const raydiumCache = {};
+const serumCache = {};
+const orcaCache = {};
+const CACHE_EXPIRATION_TIME = 300000; // 5 minutes en millisecondes
 
 // Configuration
 const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
@@ -30,20 +36,37 @@ const thresholds = {
 // Fonction pour scanner Serum
 async function scanSerum() {
     try {
-        const market = await Market.load(connection, SERUM_MARKET_ADDRESS, {}, 'serum');
-        const bids = await market.loadBids(connection);
-        const asks = await market.loadAsks(connection);
+        const currentTime = Date.now();
+        let bids, asks;
 
-        console.log(`Serum Market Loaded: ${market.address.toBase58()}`);
-        console.log(`Bids: ${bids.getL2(5)}`); // Affiche les 5 meilleures offres
-        console.log(`Asks: ${asks.getL2(5)}`); // Affiche les 5 meilleures demandes
+        // Vérification du cache
+        if (serumCache.market && (currentTime - serumCache.timestamp < CACHE_EXPIRATION_TIME)) {
+            console.log("Utilisation des données mises en cache pour Serum.");
+            bids = serumCache.market.bids;
+            asks = serumCache.market.asks;
+        } else {
+            const market = await Market.load(connection, SERUM_MARKET_ADDRESS, {}, 'serum');
+            bids = await market.loadBids(connection);
+            asks = await market.loadAsks(connection);
+
+            console.log(`Serum Market Loaded: ${market.address.toBase58()}`);
+            console.log(`Bids: ${bids.getL2(5)}`); // Affiche les 5 meilleures offres
+            console.log(`Asks: ${asks.getL2(5)}`); // Affiche les 5 meilleures demandes
+
+            // Mettre à jour le cache
+            serumCache.market = {
+                bids: bids,
+                asks: asks,
+            };
+            serumCache.timestamp = Date.now();
+        }
 
         // Vérifier la liquidité
         const totalBidLiquidity = bids.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
         const totalAskLiquidity = asks.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
 
         if (totalBidLiquidity < MIN_LIQUIDITY_THRESHOLD || totalAskLiquidity < MIN_LIQUIDITY_THRESHOLD) {
-            console.log(`Liquidité insuffisante sur le marché ${market.address.toBase58()}`);
+            console.log(`Liquidité insuffisante sur le marché ${SERUM_MARKET_ADDRESS}`);
             return; // Sortir si la liquidité est insuffisante
         }
 
@@ -61,31 +84,51 @@ async function scanSerum() {
 // Fonction pour scanner Raydium
 async function scanRaydium() {
     try {
-        const response = await axios.get(RAYDIUM_API_URL);
+        // Vérification du cache
+        const currentTime = Date.now();
+        if (raydiumCache.data && (currentTime - raydiumCache.timestamp < CACHE_EXPIRATION_TIME)) {
+            console.log("Utilisation des données mises en cache.");
+            var pairs = raydiumCache.data; // Utiliser les données mises en cache
+        } else {
+            const response = await axios.get(RAYDIUM_API_URL);
 
-        // Vérification si les données sont valides
-        if (!response.data || !Array.isArray(response.data)) {
-            console.error("Données invalides reçues de l'API Raydium");
-            return;
+            // Vérification de la réponse de l'API
+            if (response.status !== 200) {
+                console.error(`Erreur de l'API Raydium: ${response.status}`);
+                return;
+            }
+
+            // Vérification si les données sont valides
+            if (!response.data || !Array.isArray(response.data)) {
+                console.error("Données invalides reçues de l'API Raydium");
+                return;
+            }
+
+            // Filtrer les paires contenant SOL
+            pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
+            console.log(`Raydium Pairs Loaded: ${pairs.length}`);
+
+            // Mettre à jour le cache
+            raydiumCache.data = pairs;
+            raydiumCache.timestamp = Date.now();
         }
 
-        // Filtrer les paires contenant SOL
-        const pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
-
-        console.log(`Raydium Pairs Loaded: ${pairs.length}`);
-        for (const pair of pairs) {
-            // Vérifiez la liquidité de la paire ici si nécessaire
-            const totalLiquidity = pair.liquidity || 0; // Assurez-vous que 'liquidity' est défini dans l'objet `pair`
-            if (totalLiquidity <  MIN_LIQUIDITY_THRESHOLD) {
+        const limit = pLimit(5); // Limite à 5 exécutions simultanées
+        await Promise.all(pairs.map(pair => limit(async () => {
+            const totalLiquidity = pair.liquidity || 0; 
+            if (totalLiquidity < MIN_LIQUIDITY_THRESHOLD) {
                 console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}`);
-                continue; // Passer à la prochaine paire
+                return; 
             }
 
             const potentialFrontRun = checkForRaydiumOpportunity(pair, thresholds);
             if (potentialFrontRun) {
                 await executeFrontRun(potentialFrontRun, 'raydium', pair);
+                console.log(`Front-run exécuté pour la paire ${pair.tokenA}/${pair.tokenB}`);
+            } else {
+                console.log(`Aucune opportunité de front-running pour ${pair.tokenA}/${pair.tokenB}`);
             }
-        }
+        })));
     } catch (error) {
         console.error("Erreur en scannant Raydium:", error);
     }
@@ -95,18 +138,32 @@ async function scanRaydium() {
 // Fonction pour scanner Orca
 async function scanOrca() {
     try {
-        const response = await axios.get(ORCA_API_URL);
+        const currentTime = Date.now();
+        let pairs;
 
-        // Vérification si les données sont valides
-        if (!response.data || !Array.isArray(response.data)) {
-            console.error("Données invalides reçues de l'API Orca");
-            return;
+        // Vérification du cache
+        if (orcaCache.data && (currentTime - orcaCache.timestamp < CACHE_EXPIRATION_TIME)) {
+            console.log("Utilisation des données mises en cache pour Orca.");
+            pairs = orcaCache.data;
+        } else {
+            const response = await axios.get(ORCA_API_URL);
+
+            // Vérification si les données sont valides
+            if (!response.data || !Array.isArray(response.data)) {
+                console.error("Données invalides reçues de l'API Orca");
+                return;
+            }
+
+            // Filtrer les paires contenant SOL
+            pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
+
+            // Mettre à jour le cache
+            orcaCache.data = pairs;
+            orcaCache.timestamp = Date.now();
+
+            console.log(`Orca Pairs Loaded: ${pairs.length}`);
         }
 
-        // Filtrer les paires contenant SOL
-        const pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
-
-        console.log(`Orca Pairs Loaded: ${pairs.length}`);
         for (const pair of pairs) {
             // Vérifiez la liquidité de la paire ici si nécessaire
             const totalLiquidity = pair.liquidity || 0; // Assurez-vous que 'liquidity' est défini dans l'objet `pair`
