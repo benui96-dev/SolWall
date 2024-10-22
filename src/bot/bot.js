@@ -202,9 +202,29 @@ function checkForOrcaOpportunity(pair, thresholds) {
     return null;
 }
 
-// Fonction fictive pour obtenir le prix précédent
+const previousPrices = {};
+
 function getPreviousPrice(pair) {
-    return pair.price * (1 - 0.04); // Simule un prix précédent avec une variation de 4%
+    const pairKey = `${pair.tokenA}-${pair.tokenB}`; // Génère une clé unique pour chaque paire
+
+    // Si la paire n'a pas encore de prix précédents, initialiser avec le prix actuel
+    if (!previousPrices[pairKey]) {
+        previousPrices[pairKey] = [];
+        previousPrices[pairKey].push(pair.price);
+        return pair.price; // Retourne le prix actuel si pas de prix précédent
+    }
+
+    // Ajoute le prix actuel à la liste des prix précédents
+    previousPrices[pairKey].push(pair.price);
+
+    // Limite le nombre de prix stockés à 10 pour éviter d'encombrer la mémoire
+    if (previousPrices[pairKey].length > 10) {
+        previousPrices[pairKey].shift(); // Supprime le plus ancien prix
+    }
+
+    // Calcule la moyenne des prix précédents
+    const sum = previousPrices[pairKey].reduce((acc, price) => acc + price, 0);
+    return sum / previousPrices[pairKey].length; // Retourne la moyenne des prix précédents
 }
 
 // Fonction pour exécuter une transaction de front-running
