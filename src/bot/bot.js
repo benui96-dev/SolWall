@@ -23,13 +23,10 @@ const SERUM_MARKET_ADDRESS = new PublicKey('9wFFe2ecmB1nPuU5H9xqg6d9eM6NLpS2eSCJ
 const RAYDIUM_API_URL = 'https://api.raydium.io/pairs'; // URL API de Raydium
 const ORCA_API_URL = 'https://api.orca.so/v1/pairs'; // URL API d'Orca
 const { Orca, Network } = require('@orca-so/sdk');
-const MIN_LIQUIDITY_THRESHOLD = 1000; // Liquidité minimum pour déclencher une action
-const historicalPricesCache = {};
+const MIN_LIQUIDITY_THRESHOLD = 500; // Liquidité minimum pour déclencher une action
+const PRICE_CHANGE_THRESHOLD = 0.03; // Changement de prix acceptable (3%)
 
-const thresholds = {
-    minLiquidity: 1000, // Seuil de liquidité minimum
-    priceChange: 0.05,   // Changement de prix acceptable (5%)
-};
+const historicalPricesCache = {};
 
 async function scanSerum() {
     try {
@@ -176,7 +173,7 @@ async function scanOrca() {
             const totalLiquidity = pair.liquidity || 0; // Assurez-vous que 'liquidity' est défini dans l'objet `pair`
 
             // Vérifiez si la liquidité est suffisante
-            if (totalLiquidity < thresholds.minLiquidity) {
+            if (totalLiquidity < MIN_LIQUIDITY_THRESHOLD) {
                 console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}. Liquidité: ${totalLiquidity}`);
                 continue; // Passer à la prochaine paire
             }
@@ -230,10 +227,8 @@ async function checkForSerumOpportunity(bids, asks, pair) {
 
 async function checkForRaydiumOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
-    const minLiquidityThreshold = thresholds.minLiquidity; // Seuil de liquidité minimum
-    const priceChangeThreshold = thresholds.priceChange; // Changement de prix acceptable (5%)
 
-    if (liquidity < minLiquidityThreshold) {
+    if (liquidity < MIN_LIQUIDITY_THRESHOLD) {
         console.log(`Liquidité insuffisante pour ${pair.name}`);
         return null;
     }
@@ -241,7 +236,7 @@ async function checkForRaydiumOpportunity(pair, thresholds) {
     const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
     const priceChange = Math.abs(price - previousPrice) / previousPrice;
 
-    if (priceChange > priceChangeThreshold) {
+    if (priceChange > PRICE_CHANGE_THRESHOLD) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
 
         const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
@@ -264,10 +259,8 @@ async function checkForRaydiumOpportunity(pair, thresholds) {
 
 async function checkForOrcaOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
-    const minLiquidityThreshold = thresholds.minLiquidity; // Seuil de liquidité minimum
-    const priceChangeThreshold = thresholds.priceChange; // Changement de prix acceptable (5%)
 
-    if (liquidity < minLiquidityThreshold) {
+    if (liquidity < MIN_LIQUIDITY_THRESHOLD) {
         console.log(`Liquidité insuffisante pour ${pair.name}`);
         return null;
     }
@@ -275,7 +268,7 @@ async function checkForOrcaOpportunity(pair, thresholds) {
     const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
     const priceChange = Math.abs(price - previousPrice) / previousPrice;
 
-    if (priceChange > priceChangeThreshold) {
+    if (priceChange > PRICE_CHANGE_THRESHOLD) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
 
         const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
