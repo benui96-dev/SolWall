@@ -405,29 +405,77 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
         const orca = Orca.build({ network: Network.MAINNET, connection });
         const pool = await orca.getPool(fromMint, toMint);
 
+        // 1. Créer la transaction d'achat
         const transaction = new Transaction();
         const swapInstruction = await pool.swap({
             amountIn,
-            slippage: 0.5, // Adjust based on your risk appetite
+            slippage: 0.5, // Ajustez en fonction de votre tolérance au risque
             userPublicKey: KEYPAIR.publicKey,
-            // Add other necessary parameters if required
         });
 
         transaction.add(swapInstruction);
 
-        // Sign the transaction with your wallet's keypair
+        // 2. Signer et envoyer la transaction d'achat
         const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
-
-        // Confirm the transaction
+        
+        // 3. Confirmer la transaction d'achat
         await connection.confirmTransaction(signedTransaction);
+        console.log('Swap d\'achat exécuté avec succès:', signedTransaction);
 
-        console.log('Swap executed successfully:', signedTransaction);
-        return signedTransaction; // or any result you want to return
+        // 4. Vérifier si le prix a augmenté
+        const initialPrice = await pool.getPrice(); // Obtenez le prix initial
+        let newPrice;
+        const maxRetries = 10; // Nombre maximum de réessais
+        let attempts = 0;
+
+        while (attempts < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
+            if (newPrice > initialPrice) {
+                console.log('Le prix a augmenté, prêt à vendre.');
+                break; // Sortir de la boucle si le prix a augmenté
+            } else {
+                console.log('Le prix n\'a pas encore augmenté, réessai...');
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de réessayer
+            }
+        }
+
+        if (newPrice <= initialPrice) {
+            console.log('Le prix n\'a pas augmenté après plusieurs essais, vente annulée.');
+            return {
+                buyTransaction: signedTransaction,
+                sellTransaction: null, // Aucun vente n'a eu lieu
+            };
+        }
+
+        // 5. Exécuter la vente après la hausse
+        const amountOut = await pool.getAmountOut(amountIn); // Obtenez le montant de sortie basé sur l'achat
+        const sellTransaction = new Transaction();
+        const sellInstruction = await pool.swap({
+            amountIn: amountOut, // Vendre le montant obtenu
+            slippage: 0.5, // Ajustez selon vos besoins
+            userPublicKey: KEYPAIR.publicKey,
+        });
+
+        sellTransaction.add(sellInstruction);
+
+        // 6. Signer et envoyer la transaction de vente
+        const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
+
+        // 7. Confirmer la transaction de vente
+        await connection.confirmTransaction(signedSellTransaction);
+        console.log('Swap de vente exécuté avec succès:', signedSellTransaction);
+
+        return {
+            buyTransaction: signedTransaction,
+            sellTransaction: signedSellTransaction, // Retourner aussi la vente
+        }; 
     } catch (error) {
-        console.error('Error executing swap:', error);
-        throw error; // or handle the error as needed
+        console.error('Erreur lors de l\'exécution du swap:', error);
+        throw error; // ou gérez l'erreur selon vos besoins
     }
 }
+
 
 async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
     try {
