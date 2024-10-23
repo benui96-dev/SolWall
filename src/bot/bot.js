@@ -377,7 +377,7 @@ async function executeFrontRun(order, dex, marketOrPair) {
 async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
     const transaction = new Transaction();
 
-    // Obtenir le pool Raydium pour la paire SOL/SOL
+    // Obtenir le pool Raydium pour la paire
     const { swap, getPool } = require('@raydium-io/raydium-sdk'); // Assurez-vous d'avoir le bon package pour Raydium
     const pool = await getPool(fromMint.toBase58(), toMint.toBase58());
 
@@ -386,6 +386,7 @@ async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
         return;
     }
 
+    // 1. Créer la transaction d'achat
     const swapInstruction = swap({
         userPublicKey: KEYPAIR.publicKey,
         amountIn,
@@ -393,12 +394,70 @@ async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
         fromMint,
         toMint,
         pool: pool.address, // Utiliser l'adresse du pool
-        slippage: 0.5, // Ajuste selon ton appétit au risque
+        slippage: 0.5, // Ajustez selon votre tolérance au risque
     });
 
     transaction.add(swapInstruction);
-    return transaction;
+
+    // 2. Signer et envoyer la transaction d'achat
+    const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
+    await connection.confirmTransaction(signedTransaction);
+    console.log('Swap d\'achat exécuté avec succès:', signedTransaction);
+
+    // 3. Vérifier si le prix a augmenté
+    const initialPrice = await pool.getPrice(); // Obtenez le prix initial
+    let newPrice;
+    const maxRetries = 10; // Nombre maximum de réessais
+    let attempts = 0;
+
+    while (attempts < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
+        newPrice = await pool.getPrice(); // Obtenez le nouveau prix après l'achat
+        console.log('Vérification du prix... Nouveau prix:', newPrice);
+
+        if (newPrice > initialPrice) {
+            console.log('Le prix a augmenté, prêt à vendre.');
+            break; // Sortir de la boucle si le prix a augmenté
+        } else {
+            console.log('Le prix n\'a pas encore augmenté, réessai...');
+            attempts++;
+        }
+    }
+
+    if (newPrice <= initialPrice) {
+        console.log('Le prix n\'a pas augmenté après plusieurs essais, vente annulée.');
+        return {
+            buyTransaction: signedTransaction,
+            sellTransaction: null, // Aucune vente n'a eu lieu
+        };
+    }
+
+    // 4. Exécuter la vente après la hausse
+    const amountOut = await pool.getAmountOut(amountIn); // Obtenez le montant à vendre basé sur l'achat
+    const sellTransaction = new Transaction();
+    const sellInstruction = swap({
+        userPublicKey: KEYPAIR.publicKey,
+        amountIn: amountOut, // Vendre le montant obtenu
+        amountOutMin,
+        fromMint: toMint, // Utiliser le mint de la devise achetée
+        toMint: fromMint, // Vendre vers le mint de la devise d'origine
+        pool: pool.address, // Utiliser l'adresse du pool
+        slippage: 0.5, // Ajustez selon vos besoins
+    });
+
+    sellTransaction.add(sellInstruction);
+
+    // 5. Signer et envoyer la transaction de vente
+    const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
+    await connection.confirmTransaction(signedSellTransaction);
+    console.log('Swap de vente exécuté avec succès:', signedSellTransaction);
+
+    return {
+        buyTransaction: signedTransaction,
+        sellTransaction: signedSellTransaction, // Retourner aussi la vente
+    }; 
 }
+
 
 async function executeOrcaSwap(amountIn, fromMint, toMint) {
     try {
@@ -524,15 +583,70 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
             )
         );
 
-        // Envoyer et confirmer la transaction
+        // Envoyer et confirmer la transaction d'achat
         const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
         await connection.confirmTransaction(signedTransaction);
+        console.log('Ordre d\'achat placé avec succès :', signedTransaction);
 
-        console.log('Ordre placé avec succès :', signedTransaction);
+        // 4. Vérifier si le prix a augmenté
+        const initialPrice = orderPrice; // Le prix initial est celui que vous avez fixé
+        let newPrice;
+        const maxRetries = 10; // Nombre maximum de réessais
+        let attempts = 0;
+
+        while (attempts < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
+            newPrice = await market.loadBestBid(); // Obtenez le nouveau prix (ou un autre moyen de vérifier le prix)
+            console.log('Vérification du prix... Nouveau prix:', newPrice);
+
+            if (newPrice > initialPrice) {
+                console.log('Le prix a augmenté, prêt à vendre.');
+                break; // Sortir de la boucle si le prix a augmenté
+            } else {
+                console.log('Le prix n\'a pas encore augmenté, réessai...');
+                attempts++;
+            }
+        }
+
+        if (newPrice <= initialPrice) {
+            console.log('Le prix n\'a pas augmenté après plusieurs essais, vente annulée.');
+            return {
+                buyTransaction: signedTransaction,
+                sellTransaction: null, // Aucun vente n'a eu lieu
+            };
+        }
+
+        // 5. Exécuter la vente après la hausse
+        const sellTransaction = new Transaction().add(
+            market.makePlaceOrderInstruction(
+                connection,
+                {
+                    owner: KEYPAIR.publicKey,
+                    payer: market.quoteWallet, // Compte pour les fonds
+                    side: 'sell',
+                    price: newPrice, // Vendre au nouveau prix
+                    size: purchaseAmount, // Vendre le montant acheté
+                    orderType: 'limit',
+                    clientId: new BN(Date.now()), // ID client pour la traçabilité
+                    openOrdersAddress: openOrdersAccount[0].address, // Assurez-vous que cet index est correct
+                }
+            )
+        );
+
+        // Envoyer et confirmer la transaction de vente
+        const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
+        await connection.confirmTransaction(signedSellTransaction);
+        console.log('Ordre de vente exécuté avec succès :', signedSellTransaction);
+
+        return {
+            buyTransaction: signedTransaction,
+            sellTransaction: signedSellTransaction, // Retourner aussi la vente
+        }; 
     } catch (error) {
         console.error('Erreur lors du placement de l\'ordre :', error);
     }
 }
+
 
 function calculateWMA(prices, period) {
     const weights = Array.from({ length: period }, (_, i) => i + 1); // [1, 2, ..., period]
