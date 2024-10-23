@@ -146,41 +146,52 @@ async function scanOrca() {
         const currentTime = Date.now();
         let pairs;
 
+        // Vérifiez si les données sont en cache et encore valides
         if (orcaCache.data && (currentTime - orcaCache.timestamp < CACHE_EXPIRATION_TIME)) {
             console.log("Utilisation des données mises en cache pour Orca.");
             pairs = orcaCache.data;
         } else {
+            // Charger les données de l'API Orca
             const response = await axios.get(ORCA_API_URL);
 
+            // Vérifiez si les données reçues sont valides
             if (!response.data || !Array.isArray(response.data)) {
                 console.error("Données invalides reçues de l'API Orca");
                 return;
             }
 
+            // Filtrer les paires pour ne garder que celles qui contiennent SOL
             pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
-
             orcaCache.data = pairs;
             orcaCache.timestamp = Date.now();
 
             console.log(`Orca Pairs Loaded: ${pairs.length}`);
         }
 
+        // Itérer sur les paires pour vérifier les opportunités de front-running
         for (const pair of pairs) {
             const totalLiquidity = pair.liquidity || 0; // Assurez-vous que 'liquidity' est défini dans l'objet `pair`
+
+            // Vérifiez si la liquidité est suffisante
             if (totalLiquidity < thresholds.minLiquidity) {
-                console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}`);
+                console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}. Liquidité: ${totalLiquidity}`);
                 continue; // Passer à la prochaine paire
             }
 
+            // Vérifier s'il existe une opportunité de front-running
             const potentialFrontRun = checkForOrcaOpportunity(pair, thresholds);
             if (potentialFrontRun) {
                 await executeFrontRun(potentialFrontRun, 'orca', pair);
+                console.log(`Front-run exécuté pour la paire ${pair.tokenA}/${pair.tokenB}`);
+            } else {
+                console.log(`Aucune opportunité de front-running pour ${pair.tokenA}/${pair.tokenB}`);
             }
         }
     } catch (error) {
         console.error("Erreur en scannant Orca:", error);
     }
 }
+
 
 async function checkForSerumOpportunity(bids, asks, thresholds) {
     const highestBid = bids.getL2(1)[0]; // Meilleure offre
