@@ -430,13 +430,15 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
 
         while (attempts < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
+            newPrice = await pool.getPrice(); // Obtenez le nouveau prix
+            console.log('Vérification du prix... Nouveau prix:', newPrice);
+
             if (newPrice > initialPrice) {
                 console.log('Le prix a augmenté, prêt à vendre.');
                 break; // Sortir de la boucle si le prix a augmenté
             } else {
                 console.log('Le prix n\'a pas encore augmenté, réessai...');
                 attempts++;
-                await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de réessayer
             }
         }
 
@@ -475,6 +477,7 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
         throw error; // ou gérez l'erreur selon vos besoins
     }
 }
+
 
 
 async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
