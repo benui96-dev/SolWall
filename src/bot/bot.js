@@ -75,7 +75,7 @@ async function scanSerum() {
         }
 
         // Vérifier si une transaction est front-runable
-        const potentialFrontRun = checkForFrontRun(bids, asks);
+        const potentialFrontRun = checkForSerumOpportunity(bids, asks);
         if (potentialFrontRun) {
             await executeFrontRun(potentialFrontRun, 'serum', market);
         }
@@ -188,7 +188,7 @@ async function scanOrca() {
 
 
 // Vérifier les opportunités de front-running pour Serum
-function checkForFrontRun(bids, asks) {
+async function checkForSerumOpportunity(bids, asks, thresholds) {
     const highestBid = bids.getL2(1)[0]; // Meilleure offre
     const lowestAsk = asks.getL2(1)[0]; // Meilleure demande
 
@@ -197,10 +197,21 @@ function checkForFrontRun(bids, asks) {
         // Compare les prix
         if (highestBid.price > lowestAsk.price) {
             console.log(`Opportunité de front-running détectée sur Serum! Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
-            return {
-                price: lowestAsk.price, // Prix à utiliser pour la transaction de front-run
-                amount: 1, // Quantité à acheter (ajuste selon tes besoins)
-            };
+
+            // Récupérer les prix passés pour l'analyse
+            const prices = await getHistoricalPrices();  // À définir : fonction pour récupérer les prix historiques
+            const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
+
+            // Vérifie le signal d'achat
+            if (marketSignal === "buy") {
+                console.log(`Opportunité d'achat détectée sur Serum! Prix: ${lowestAsk.price}`);
+                return {
+                    price: lowestAsk.price, // Prix à utiliser pour la transaction de front-run
+                    amount: 1, // Quantité à acheter (ajuste selon tes besoins)
+                };
+            } else {
+                console.log(`Signal d'achat non détecté sur Serum.`);
+            }
         } else {
             console.log(`Aucune opportunité de front-running. Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
         }
@@ -211,8 +222,9 @@ function checkForFrontRun(bids, asks) {
     return null;
 }
 
+
 // Vérifier les opportunités de front-running pour Raydium
-function checkForRaydiumOpportunity(pair, thresholds) {
+async function checkForRaydiumOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
     const minLiquidityThreshold = thresholds.minLiquidity; // Seuil de liquidité minimum
     const priceChangeThreshold = thresholds.priceChange; // Changement de prix acceptable (5%)
@@ -223,22 +235,34 @@ function checkForRaydiumOpportunity(pair, thresholds) {
         return null;
     }
 
-    const previousPrice = getPreviousPrice(pair); // À définir
+    const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
     const priceChange = Math.abs(price - previousPrice) / previousPrice;
 
+    // Vérifie si le changement de prix dépasse le seuil
     if (priceChange > priceChangeThreshold) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
-        return {
-            price: price,
-            amount: 1,
-        };
+
+        // Récupérer les prix passés pour l'analyse
+        const prices = getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+        const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
+
+        // Vérifie le signal d'achat
+        if (marketSignal === "buy") {
+            console.log(`Opportunité d'achat détectée pour ${pair.name}`);
+            return {
+                action: "buy",
+                price: price,
+                amount: 1,  // Définit la quantité d'achat (à ajuster selon ta logique)
+            };
+        }
     }
 
     return null;
 }
+
 
 // Vérifier les opportunités de front-running pour Orca
-function checkForOrcaOpportunity(pair, thresholds) {
+async function checkForOrcaOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
     const minLiquidityThreshold = thresholds.minLiquidity; // Seuil de liquidité minimum
     const priceChangeThreshold = thresholds.priceChange; // Changement de prix acceptable (5%)
@@ -249,19 +273,31 @@ function checkForOrcaOpportunity(pair, thresholds) {
         return null;
     }
 
-    const previousPrice = getPreviousPrice(pair); // À définir
+    const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
     const priceChange = Math.abs(price - previousPrice) / previousPrice;
 
+    // Vérifie si le changement de prix dépasse le seuil
     if (priceChange > priceChangeThreshold) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
-        return {
-            price: price,
-            amount: 1,
-        };
+
+        // Récupérer les prix passés pour l'analyse
+        const prices = getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+        const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
+
+        // Vérifie le signal d'achat
+        if (marketSignal === "buy") {
+            console.log(`Opportunité d'achat détectée pour ${pair.name}`);
+            return {
+                action: "buy",
+                price: price,
+                amount: 1,  // Définit la quantité d'achat (à ajuster selon ta logique)
+            };
+        }
     }
 
     return null;
 }
+
 
 const previousPrices = {};
 
@@ -463,6 +499,59 @@ function calculatePurchaseAmount(totalBidLiquidity, totalAskLiquidity, maxPurcha
     }
     
     return purchaseAmount;
+}
+
+function calculateWMA(prices, period) {
+    const weights = Array.from({ length: period }, (_, i) => i + 1); // [1, 2, ..., period]
+    const weightedPrices = prices.slice(-period).map((price, index) => price * weights[index]);
+    
+    const wma = weightedPrices.reduce((acc, price) => acc + price, 0) / weights.reduce((acc, weight) => acc + weight, 0);
+    return wma;
+}
+
+function calculateRSI(prices, period) {
+    if (prices.length < period) return null;
+
+    let gains = 0;
+    let losses = 0;
+
+    for (let i = 1; i < period; i++) {
+        const change = prices[i] - prices[i - 1];
+        if (change > 0) {
+            gains += change;
+        } else {
+            losses -= change; // perdre est positif
+        }
+    }
+
+    const averageGain = gains / period;
+    const averageLoss = losses / period;
+
+    if (averageLoss === 0) return 100; // éviter la division par zéro
+
+    const rs = averageGain / averageLoss;
+    const rsi = 100 - (100 / (1 + rs));
+
+    return rsi;
+}
+
+// Analyse les données de marché avec les indicateurs WMA et RSI
+async function analyzeMarketData(prices) {
+    const wmaPeriod = 14;  // Période pour la WMA
+    const rsiPeriod = 14;  // Période pour le RSI
+
+    const wma = calculateWMA(prices, wmaPeriod);  // Fonction pour calculer la WMA
+    const rsi = calculateRSI(prices, rsiPeriod);  // Fonction pour calculer le RSI
+
+    console.log(`WMA: ${wma}, RSI: ${rsi}`);
+
+    // Logique pour le trading
+    if (rsi < 30) {
+        console.log("RSI indique une condition de survente - potentiel d'achat.");
+        return "buy";
+    }
+
+    return null;  // Pas de signal clair de trading
 }
 
 async function mainLoop() {
