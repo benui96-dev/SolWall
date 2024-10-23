@@ -36,19 +36,22 @@ async function scanSerum() {
         const currentTime = Date.now();
         let bids, asks;
 
+        // Vérifiez si les données sont en cache et encore valides
         if (serumCache.market && (currentTime - serumCache.timestamp < CACHE_EXPIRATION_TIME)) {
             console.log("Utilisation des données mises en cache pour Serum.");
             bids = serumCache.market.bids;
             asks = serumCache.market.asks;
         } else {
+            // Chargez les données du marché Serum depuis la blockchain
             const market = await Market.load(connection, SERUM_MARKET_ADDRESS, {}, 'serum');
             bids = await market.loadBids(connection);
             asks = await market.loadAsks(connection);
 
             console.log(`Serum Market Loaded: ${market.address.toBase58()}`);
-            console.log(`Bids: ${bids.getL2(5)}`); // Affiche les 5 meilleures offres
-            console.log(`Asks: ${asks.getL2(5)}`); // Affiche les 5 meilleures demandes
+            console.log(`Bids: ${JSON.stringify(bids.getL2(5))}`); // Affiche les 5 meilleures offres
+            console.log(`Asks: ${JSON.stringify(asks.getL2(5))}`); // Affiche les 5 meilleures demandes
 
+            // Mettre à jour le cache
             serumCache.market = {
                 bids: bids,
                 asks: asks,
@@ -56,23 +59,29 @@ async function scanSerum() {
             serumCache.timestamp = Date.now();
         }
 
+        // Calculez la liquidité totale des 5 meilleures offres et demandes
         const totalBidLiquidity = bids.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
         const totalAskLiquidity = asks.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
 
+        // Vérifiez si la liquidité est suffisante
         if (totalBidLiquidity < MIN_LIQUIDITY_THRESHOLD || totalAskLiquidity < MIN_LIQUIDITY_THRESHOLD) {
-            console.log(`Liquidité insuffisante sur le marché ${SERUM_MARKET_ADDRESS}`);
+            console.log(`Liquidité insuffisante sur le marché ${SERUM_MARKET_ADDRESS}. Bid: ${totalBidLiquidity}, Ask: ${totalAskLiquidity}`);
             return; // Sortir si la liquidité est insuffisante
         }
 
-        // Vérifier si une transaction est front-runable
+        // Vérifier s'il existe une opportunité de front-running
         const potentialFrontRun = checkForSerumOpportunity(bids, asks);
         if (potentialFrontRun) {
+            console.log("Opportunité de front-run détectée:", potentialFrontRun);
             await executeFrontRun(potentialFrontRun, 'serum', market);
+        } else {
+            console.log("Aucune opportunité de front-run détectée.");
         }
     } catch (error) {
         console.error("Erreur lors du scan du marché Serum:", error);
     }
 }
+
 
 async function scanRaydium() {
     try {
