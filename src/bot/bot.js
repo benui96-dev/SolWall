@@ -26,6 +26,10 @@ const RAYDIUM_API_URL = 'https://api.raydium.io/pairs'; // URL API de Raydium
 const ORCA_API_URL = 'https://api.orca.so/v1/pairs'; // URL API d'Orca
 const { Orca, Network } = require('@orca-so/sdk');
 const MIN_LIQUIDITY_THRESHOLD = 1000; // Liquidité minimum pour déclencher une action
+const totalBidLiquidity = 500;  // Exemples de liquidité des acheteurs
+const totalAskLiquidity = 300;  // Exemples de liquidité des vendeurs
+const maxPurchaseAmount = 0.5;  // Maximum 0.5 SOL
+const minPurchaseAmount = 0.1;  // Minimum 0.1 SOL
 
 // Seuils centralisés
 const thresholds = {
@@ -289,7 +293,7 @@ async function executeFrontRun(order, dex, marketOrPair) {
     console.log(`Executing front-run transaction on ${dex} at price: ${order.price} for amount: ${order.amount}`);
 
     // Récupérer le solde actuel de ton portefeuille
-    const purchaseAmount = 0.1; // Montant fixe de 0.1 SOL pour chaque transaction
+    const purchaseAmount = calculatePurchaseAmount(totalBidLiquidity, totalAskLiquidity, maxPurchaseAmount, minPurchaseAmount);
 
     let transaction;
 
@@ -443,6 +447,23 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
     }
 }
 
+function calculatePurchaseAmount(totalBidLiquidity, totalAskLiquidity, maxPurchaseAmount, minPurchaseAmount) {
+    // Ratio de liquidité : compare la liquidité des offres et des demandes
+    const liquidityRatio = totalBidLiquidity / (totalBidLiquidity + totalAskLiquidity);
+    
+    // Calcul du montant d'achat basé sur la liquidité
+    let purchaseAmount = liquidityRatio * maxPurchaseAmount;
+    
+    // S'assurer que le montant reste dans les limites définies
+    if (purchaseAmount < minPurchaseAmount) {
+        purchaseAmount = minPurchaseAmount;
+    }
+    if (purchaseAmount > maxPurchaseAmount) {
+        purchaseAmount = maxPurchaseAmount;
+    }
+    
+    return purchaseAmount;
+}
 
 async function mainLoop() {
     while (true) {
