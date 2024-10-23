@@ -20,16 +20,12 @@ const connection = new Connection('https://api.mainnet-beta.solana.com', 'confir
 const PRIVATE_KEY = Uint8Array.from([/* insère ici ta clé privée en format Uint8Array */]);
 const KEYPAIR = Keypair.fromSecretKey(PRIVATE_KEY);
 const SERUM_MARKET_ADDRESS = new PublicKey('9wFFe2ecmB1nPuU5H9xqg6d9eM6NLpS2eSCJih1t8TgP'); // Remplace par l'adresse de ton marché Serum
-const RAYDIUM_PROGRAM_ID = new PublicKey('5quB5sHUnKccLNSKk2d5BfhTyHt4vHMmdHhRPi7YBZZM'); // Remplace par l'ID du programme Raydium
-const ORCA_PROGRAM_ID = new PublicKey('9Ww2WNs2CmqKNF1rNKEKr4fqHacBjDcqNuGxvSzzcDVU'); // Remplace par l'ID du programme Orca
 const RAYDIUM_API_URL = 'https://api.raydium.io/pairs'; // URL API de Raydium
 const ORCA_API_URL = 'https://api.orca.so/v1/pairs'; // URL API d'Orca
 const { Orca, Network } = require('@orca-so/sdk');
 const MIN_LIQUIDITY_THRESHOLD = 1000; // Liquidité minimum pour déclencher une action
-const totalBidLiquidity = 500;  // Exemples de liquidité des acheteurs
-const totalAskLiquidity = 300;  // Exemples de liquidité des vendeurs
-const maxPurchaseAmount = 0.5;  // Maximum 0.5 SOL
-const minPurchaseAmount = 0.1;  // Minimum 0.1 SOL
+const historicalPricesCache = {};
+
 
 // Seuils centralisés
 const thresholds = {
@@ -199,7 +195,8 @@ async function checkForSerumOpportunity(bids, asks, thresholds) {
             console.log(`Opportunité de front-running détectée sur Serum! Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
 
             // Récupérer les prix passés pour l'analyse
-            const prices = await getHistoricalPrices();  // À définir : fonction pour récupérer les prix historiques
+            const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+            console.log('Historical Prices:', prices);
             const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
             // Vérifie le signal d'achat
@@ -243,7 +240,9 @@ async function checkForRaydiumOpportunity(pair, thresholds) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
 
         // Récupérer les prix passés pour l'analyse
-        const prices = getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+        const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+        console.log('Historical Prices:', prices);
+
         const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
         // Vérifie le signal d'achat
@@ -281,7 +280,8 @@ async function checkForOrcaOpportunity(pair, thresholds) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
 
         // Récupérer les prix passés pour l'analyse
-        const prices = getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+        const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+        console.log('Historical Prices:', prices);
         const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
         // Vérifie le signal d'achat
@@ -329,7 +329,7 @@ async function executeFrontRun(order, dex, marketOrPair) {
     console.log(`Executing front-run transaction on ${dex} at price: ${order.price} for amount: ${order.amount}`);
 
     // Récupérer le solde actuel de ton portefeuille
-    const purchaseAmount = calculatePurchaseAmount(totalBidLiquidity, totalAskLiquidity, maxPurchaseAmount, minPurchaseAmount);
+    const purchaseAmount = 0.1;
 
     let transaction;
 
@@ -483,24 +483,6 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
     }
 }
 
-function calculatePurchaseAmount(totalBidLiquidity, totalAskLiquidity, maxPurchaseAmount, minPurchaseAmount) {
-    // Ratio de liquidité : compare la liquidité des offres et des demandes
-    const liquidityRatio = totalBidLiquidity / (totalBidLiquidity + totalAskLiquidity);
-    
-    // Calcul du montant d'achat basé sur la liquidité
-    let purchaseAmount = liquidityRatio * maxPurchaseAmount;
-    
-    // S'assurer que le montant reste dans les limites définies
-    if (purchaseAmount < minPurchaseAmount) {
-        purchaseAmount = minPurchaseAmount;
-    }
-    if (purchaseAmount > maxPurchaseAmount) {
-        purchaseAmount = maxPurchaseAmount;
-    }
-    
-    return purchaseAmount;
-}
-
 function calculateWMA(prices, period) {
     const weights = Array.from({ length: period }, (_, i) => i + 1); // [1, 2, ..., period]
     const weightedPrices = prices.slice(-period).map((price, index) => price * weights[index]);
@@ -552,6 +534,37 @@ async function analyzeMarketData(prices) {
     }
 
     return null;  // Pas de signal clair de trading
+}
+
+async function getHistoricalPrices(coinId, days = 30) {
+    const cacheKey = `${coinId}_${days}`; // Créer une clé unique pour chaque coin et période
+    const cachedPrices = historicalPricesCache[cacheKey]; // Vérifier si les prix sont déjà dans le cache
+
+    if (cachedPrices) {
+        console.log('Returning cached prices for:', cacheKey);
+        return cachedPrices; // Retourner les prix du cache s'ils existent
+    }
+
+    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        // Extraire les prix de la réponse
+        const prices = data.prices.map(price => price[1]); // Chaque élément contient [timestamp, price]
+
+        // Stocker les prix dans le cache
+        historicalPricesCache[cacheKey] = prices;
+        console.log('Fetched and cached prices for:', cacheKey);
+        
+        return prices;
+    } catch (error) {
+        console.error('Error fetching historical prices:', error);
+        return []; // Retourner un tableau vide en cas d'erreur
+    }
 }
 
 async function mainLoop() {
