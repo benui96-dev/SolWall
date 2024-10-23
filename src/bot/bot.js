@@ -1,15 +1,23 @@
-const {
-    Connection,
-    PublicKey,
-    Keypair,
-    Transaction,
-    sendAndConfirmTransaction,
-} = require('@solana/web3.js');
-const { Market, OpenOrders } = require('@project-serum/serum');
-const axios = require('axios');
-const BN = require('bn.js');
-const pLimit = require('p-limit');
-const bs58 = require('bs58');
+
+
+
+import pLimit from 'p-limit';
+
+
+
+import axios from 'axios';
+import BN from 'bn.js';
+import bs58 from 'bs58';
+import dotenv from 'dotenv';
+import { Network } from '@orca-so/sdk';
+
+import { Keypair, Connection, PublicKey } from '@solana/web3.js'; // Ajoutez PublicKey ici
+
+
+import { Market, OpenOrders } from '@project-serum/serum';
+
+
+dotenv.config();
 
 const raydiumCache = {};
 const serumCache = {};
@@ -18,13 +26,33 @@ const CACHE_EXPIRATION_TIME = 300000; // 5 minutes en millisecondes
 
 // Configuration
 const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+
+
+
+// Récupérer la clé privée depuis les variables d'environnement
 const privateKeyBase58 = process.env.PRIVATE_KEY;
+
+if (!privateKeyBase58) {
+    throw new Error('La clé privée n\'est pas définie dans l\'environnement. Vérifiez votre fichier .env.');
+}
+
+// Décodez la clé privée Base58
 const PRIVATE_KEY = bs58.decode(privateKeyBase58);
+
+// Créez le Keypair
 const KEYPAIR = Keypair.fromSecretKey(PRIVATE_KEY);
-const SERUM_MARKET_ADDRESS = new PublicKey('9wFFe2ecmB1nPuU5H9xqg6d9eM6NLpS2eSCJih1t8TgP'); // Remplace par l'adresse de ton marché Serum
+
+// Vérifiez le Keypair
+console.log(`Keypair créé : ${KEYPAIR.publicKey.toBase58()}`);
+
+
+const SERUM_MARKET_ADDRESS = new PublicKey('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
+        console.log(`Raw Address: ${SERUM_MARKET_ADDRESS.toBase58()}`);
+
+
+
 const RAYDIUM_API_URL = 'https://api.raydium.io/pairs'; // URL API de Raydium
 const ORCA_API_URL = 'https://api.orca.so/v1/pairs'; // URL API d'Orca
-const { Orca, Network } = require('@orca-so/sdk');
 const MIN_LIQUIDITY_THRESHOLD = 500; // Liquidité minimum pour déclencher une action
 const PRICE_CHANGE_THRESHOLD = 0.03; // Changement de prix acceptable (3%)
 
@@ -43,7 +71,9 @@ async function scanSerum() {
             asks = serumCache.market.asks;
         } else {
             // Chargez les données du marché Serum depuis la blockchain
-            const market = await Market.load(connection, SERUM_MARKET_ADDRESS, {}, 'serum');
+        const market = await Market.load(connection, SERUM_MARKET_ADDRESS, {}, '');
+			        console.log(`Marché chargé : ${market.address.toBase58()}`);
+
             bids = await market.loadBids(connection);
             asks = await market.loadAsks(connection);
 
