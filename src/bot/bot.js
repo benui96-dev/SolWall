@@ -26,20 +26,16 @@ const { Orca, Network } = require('@orca-so/sdk');
 const MIN_LIQUIDITY_THRESHOLD = 1000; // Liquidité minimum pour déclencher une action
 const historicalPricesCache = {};
 
-
-// Seuils centralisés
 const thresholds = {
     minLiquidity: 1000, // Seuil de liquidité minimum
     priceChange: 0.05,   // Changement de prix acceptable (5%)
 };
 
-// Fonction pour scanner Serum
 async function scanSerum() {
     try {
         const currentTime = Date.now();
         let bids, asks;
 
-        // Vérification du cache
         if (serumCache.market && (currentTime - serumCache.timestamp < CACHE_EXPIRATION_TIME)) {
             console.log("Utilisation des données mises en cache pour Serum.");
             bids = serumCache.market.bids;
@@ -53,7 +49,6 @@ async function scanSerum() {
             console.log(`Bids: ${bids.getL2(5)}`); // Affiche les 5 meilleures offres
             console.log(`Asks: ${asks.getL2(5)}`); // Affiche les 5 meilleures demandes
 
-            // Mettre à jour le cache
             serumCache.market = {
                 bids: bids,
                 asks: asks,
@@ -61,7 +56,6 @@ async function scanSerum() {
             serumCache.timestamp = Date.now();
         }
 
-        // Vérifier la liquidité
         const totalBidLiquidity = bids.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
         const totalAskLiquidity = asks.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
 
@@ -80,35 +74,24 @@ async function scanSerum() {
     }
 }
 
-
-// Fonction pour scanner Raydium
 async function scanRaydium() {
     try {
-        // Vérification du cache
         const currentTime = Date.now();
         if (raydiumCache.data && (currentTime - raydiumCache.timestamp < CACHE_EXPIRATION_TIME)) {
             console.log("Utilisation des données mises en cache.");
             var pairs = raydiumCache.data; // Utiliser les données mises en cache
         } else {
             const response = await axios.get(RAYDIUM_API_URL);
-
-            // Vérification de la réponse de l'API
             if (response.status !== 200) {
                 console.error(`Erreur de l'API Raydium: ${response.status}`);
                 return;
             }
-
-            // Vérification si les données sont valides
             if (!response.data || !Array.isArray(response.data)) {
                 console.error("Données invalides reçues de l'API Raydium");
                 return;
             }
-
-            // Filtrer les paires contenant SOL
             pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
             console.log(`Raydium Pairs Loaded: ${pairs.length}`);
-
-            // Mettre à jour le cache
             raydiumCache.data = pairs;
             raydiumCache.timestamp = Date.now();
         }
@@ -134,30 +117,24 @@ async function scanRaydium() {
     }
 }
 
-
-// Fonction pour scanner Orca
 async function scanOrca() {
     try {
         const currentTime = Date.now();
         let pairs;
 
-        // Vérification du cache
         if (orcaCache.data && (currentTime - orcaCache.timestamp < CACHE_EXPIRATION_TIME)) {
             console.log("Utilisation des données mises en cache pour Orca.");
             pairs = orcaCache.data;
         } else {
             const response = await axios.get(ORCA_API_URL);
 
-            // Vérification si les données sont valides
             if (!response.data || !Array.isArray(response.data)) {
                 console.error("Données invalides reçues de l'API Orca");
                 return;
             }
 
-            // Filtrer les paires contenant SOL
             pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
 
-            // Mettre à jour le cache
             orcaCache.data = pairs;
             orcaCache.timestamp = Date.now();
 
@@ -165,7 +142,6 @@ async function scanOrca() {
         }
 
         for (const pair of pairs) {
-            // Vérifiez la liquidité de la paire ici si nécessaire
             const totalLiquidity = pair.liquidity || 0; // Assurez-vous que 'liquidity' est défini dans l'objet `pair`
             if (totalLiquidity < thresholds.minLiquidity) {
                 console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}`);
@@ -182,24 +158,18 @@ async function scanOrca() {
     }
 }
 
-
-// Vérifier les opportunités de front-running pour Serum
 async function checkForSerumOpportunity(bids, asks, thresholds) {
     const highestBid = bids.getL2(1)[0]; // Meilleure offre
     const lowestAsk = asks.getL2(1)[0]; // Meilleure demande
 
-    // Vérifie si nous avons à la fois la meilleure offre et la meilleure demande
     if (highestBid && lowestAsk) {
-        // Compare les prix
         if (highestBid.price > lowestAsk.price) {
             console.log(`Opportunité de front-running détectée sur Serum! Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
 
-            // Récupérer les prix passés pour l'analyse
             const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
             console.log('Historical Prices:', prices);
             const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
-            // Vérifie le signal d'achat
             if (marketSignal === "buy") {
                 console.log(`Opportunité d'achat détectée sur Serum! Prix: ${lowestAsk.price}`);
                 return {
@@ -219,14 +189,11 @@ async function checkForSerumOpportunity(bids, asks, thresholds) {
     return null;
 }
 
-
-// Vérifier les opportunités de front-running pour Raydium
 async function checkForRaydiumOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
     const minLiquidityThreshold = thresholds.minLiquidity; // Seuil de liquidité minimum
     const priceChangeThreshold = thresholds.priceChange; // Changement de prix acceptable (5%)
 
-    // Vérifie la liquidité
     if (liquidity < minLiquidityThreshold) {
         console.log(`Liquidité insuffisante pour ${pair.name}`);
         return null;
@@ -235,17 +202,14 @@ async function checkForRaydiumOpportunity(pair, thresholds) {
     const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
     const priceChange = Math.abs(price - previousPrice) / previousPrice;
 
-    // Vérifie si le changement de prix dépasse le seuil
     if (priceChange > priceChangeThreshold) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
 
-        // Récupérer les prix passés pour l'analyse
         const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
         console.log('Historical Prices:', prices);
 
         const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
-        // Vérifie le signal d'achat
         if (marketSignal === "buy") {
             console.log(`Opportunité d'achat détectée pour ${pair.name}`);
             return {
@@ -259,14 +223,11 @@ async function checkForRaydiumOpportunity(pair, thresholds) {
     return null;
 }
 
-
-// Vérifier les opportunités de front-running pour Orca
 async function checkForOrcaOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
     const minLiquidityThreshold = thresholds.minLiquidity; // Seuil de liquidité minimum
     const priceChangeThreshold = thresholds.priceChange; // Changement de prix acceptable (5%)
 
-    // Vérifie la liquidité
     if (liquidity < minLiquidityThreshold) {
         console.log(`Liquidité insuffisante pour ${pair.name}`);
         return null;
@@ -275,16 +236,13 @@ async function checkForOrcaOpportunity(pair, thresholds) {
     const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
     const priceChange = Math.abs(price - previousPrice) / previousPrice;
 
-    // Vérifie si le changement de prix dépasse le seuil
     if (priceChange > priceChangeThreshold) {
         console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
 
-        // Récupérer les prix passés pour l'analyse
         const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
         console.log('Historical Prices:', prices);
         const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
-        // Vérifie le signal d'achat
         if (marketSignal === "buy") {
             console.log(`Opportunité d'achat détectée pour ${pair.name}`);
             return {
@@ -304,31 +262,25 @@ const previousPrices = {};
 function getPreviousPrice(pair) {
     const pairKey = `${pair.tokenA}-${pair.tokenB}`; // Génère une clé unique pour chaque paire
 
-    // Si la paire n'a pas encore de prix précédents, initialiser avec le prix actuel
     if (!previousPrices[pairKey]) {
         previousPrices[pairKey] = [];
         previousPrices[pairKey].push(pair.price);
         return pair.price; // Retourne le prix actuel si pas de prix précédent
     }
 
-    // Ajoute le prix actuel à la liste des prix précédents
     previousPrices[pairKey].push(pair.price);
 
-    // Limite le nombre de prix stockés à 10 pour éviter d'encombrer la mémoire
     if (previousPrices[pairKey].length > 10) {
         previousPrices[pairKey].shift(); // Supprime le plus ancien prix
     }
 
-    // Calcule la moyenne des prix précédents
     const sum = previousPrices[pairKey].reduce((acc, price) => acc + price, 0);
     return sum / previousPrices[pairKey].length; // Retourne la moyenne des prix précédents
 }
 
-// Fonction pour exécuter une transaction de front-running
 async function executeFrontRun(order, dex, marketOrPair) {
     console.log(`Executing front-run transaction on ${dex} at price: ${order.price} for amount: ${order.amount}`);
 
-    // Récupérer le solde actuel de ton portefeuille
     const purchaseAmount = 0.1;
 
     let transaction;
@@ -377,7 +329,6 @@ async function executeFrontRun(order, dex, marketOrPair) {
 async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
     const transaction = new Transaction();
 
-    // Obtenir le pool Raydium pour la paire
     const { swap, getPool } = require('@raydium-io/raydium-sdk'); // Assurez-vous d'avoir le bon package pour Raydium
     const pool = await getPool(fromMint.toBase58(), toMint.toBase58());
 
@@ -386,7 +337,6 @@ async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
         return;
     }
 
-    // 1. Créer la transaction d'achat
     const swapInstruction = swap({
         userPublicKey: KEYPAIR.publicKey,
         amountIn,
@@ -399,12 +349,10 @@ async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
 
     transaction.add(swapInstruction);
 
-    // 2. Signer et envoyer la transaction d'achat
     const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
     await connection.confirmTransaction(signedTransaction);
     console.log('Swap d\'achat exécuté avec succès:', signedTransaction);
 
-    // 3. Vérifier si le prix a augmenté
     const initialPrice = await pool.getPrice(); // Obtenez le prix initial
     let newPrice;
     const maxRetries = 10; // Nombre maximum de réessais
@@ -432,7 +380,6 @@ async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
         };
     }
 
-    // 4. Exécuter la vente après la hausse
     const amountOut = await pool.getAmountOut(amountIn); // Obtenez le montant à vendre basé sur l'achat
     const sellTransaction = new Transaction();
     const sellInstruction = swap({
@@ -447,7 +394,6 @@ async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
 
     sellTransaction.add(sellInstruction);
 
-    // 5. Signer et envoyer la transaction de vente
     const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
     await connection.confirmTransaction(signedSellTransaction);
     console.log('Swap de vente exécuté avec succès:', signedSellTransaction);
@@ -464,7 +410,6 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
         const orca = Orca.build({ network: Network.MAINNET, connection });
         const pool = await orca.getPool(fromMint, toMint);
 
-        // 1. Créer la transaction d'achat
         const transaction = new Transaction();
         const swapInstruction = await pool.swap({
             amountIn,
@@ -474,14 +419,11 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
 
         transaction.add(swapInstruction);
 
-        // 2. Signer et envoyer la transaction d'achat
         const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
         
-        // 3. Confirmer la transaction d'achat
         await connection.confirmTransaction(signedTransaction);
         console.log('Swap d\'achat exécuté avec succès:', signedTransaction);
 
-        // 4. Vérifier si le prix a augmenté
         const initialPrice = await pool.getPrice(); // Obtenez le prix initial
         let newPrice;
         const maxRetries = 10; // Nombre maximum de réessais
@@ -509,7 +451,6 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
             };
         }
 
-        // 5. Exécuter la vente après la hausse
         const amountOut = await pool.getAmountOut(amountIn); // Obtenez le montant de sortie basé sur l'achat
         const sellTransaction = new Transaction();
         const sellInstruction = await pool.swap({
@@ -520,10 +461,8 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
 
         sellTransaction.add(sellInstruction);
 
-        // 6. Signer et envoyer la transaction de vente
         const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
 
-        // 7. Confirmer la transaction de vente
         await connection.confirmTransaction(signedSellTransaction);
         console.log('Swap de vente exécuté avec succès:', signedSellTransaction);
 
@@ -537,26 +476,21 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
     }
 }
 
-
-
 async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
     try {
         const market = marketOrPair;
 
-        // Récupérer le compte des ordres ouverts pour l'utilisateur
         const openOrdersAccount = await OpenOrders.findForMarketAndOwner(
             connection,
             market.address,
             KEYPAIR.publicKey
         );
 
-        // Valider le compte des ordres ouverts
         if (!openOrdersAccount || openOrdersAccount.length === 0) {
             console.error('Compte des ordres ouverts introuvable');
             return;
         }
 
-        // Valider les paramètres de l'ordre
         if (!orderPrice || orderPrice <= 0) {
             console.error('Prix invalide pour l\'ordre');
             return;
@@ -566,7 +500,6 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
             return;
         }
 
-        // Créer la transaction
         const transaction = new Transaction().add(
             market.makePlaceOrderInstruction(
                 connection,
@@ -583,12 +516,10 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
             )
         );
 
-        // Envoyer et confirmer la transaction d'achat
         const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
         await connection.confirmTransaction(signedTransaction);
         console.log('Ordre d\'achat placé avec succès :', signedTransaction);
 
-        // 4. Vérifier si le prix a augmenté
         const initialPrice = orderPrice; // Le prix initial est celui que vous avez fixé
         let newPrice;
         const maxRetries = 10; // Nombre maximum de réessais
@@ -616,7 +547,6 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
             };
         }
 
-        // 5. Exécuter la vente après la hausse
         const sellTransaction = new Transaction().add(
             market.makePlaceOrderInstruction(
                 connection,
@@ -633,7 +563,6 @@ async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
             )
         );
 
-        // Envoyer et confirmer la transaction de vente
         const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
         await connection.confirmTransaction(signedSellTransaction);
         console.log('Ordre de vente exécuté avec succès :', signedSellTransaction);
@@ -682,7 +611,6 @@ function calculateRSI(prices, period) {
     return rsi;
 }
 
-// Analyse les données de marché avec les indicateurs WMA et RSI
 async function analyzeMarketData(prices) {
     const wmaPeriod = 14;  // Période pour la WMA
     const rsiPeriod = 14;  // Période pour le RSI
@@ -692,7 +620,6 @@ async function analyzeMarketData(prices) {
 
     console.log(`WMA: ${wma}, RSI: ${rsi}`);
 
-    // Logique pour le trading
     if (rsi < 30) {
         console.log("RSI indique une condition de survente - potentiel d'achat.");
         return "buy";
