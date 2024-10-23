@@ -6,7 +6,6 @@ import pLimit from 'p-limit';
 
 
 import axios from 'axios';
-import BN from 'bn.js';
 import bs58 from 'bs58';
 import dotenv from 'dotenv';
 import { Network } from '@orca-so/sdk';
@@ -14,13 +13,10 @@ import { Network } from '@orca-so/sdk';
 import { Keypair, Connection, PublicKey } from '@solana/web3.js'; // Ajoutez PublicKey ici
 
 
-import { Market, OpenOrders } from '@project-serum/serum';
-
 
 dotenv.config();
 
 const raydiumCache = {};
-const serumCache = {};
 const orcaCache = {};
 const CACHE_EXPIRATION_TIME = 300000; // 5 minutes en millisecondes
 
@@ -46,8 +42,6 @@ const KEYPAIR = Keypair.fromSecretKey(PRIVATE_KEY);
 console.log(`Keypair créé : ${KEYPAIR.publicKey.toBase58()}`);
 
 
-const SERUM_MARKET_ADDRESS = new PublicKey('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
-        console.log(`Raw Address: ${SERUM_MARKET_ADDRESS.toBase58()}`);
 
 
 
@@ -57,64 +51,9 @@ const MIN_LIQUIDITY_THRESHOLD = 500; // Liquidité minimum pour déclencher une 
 const PRICE_CHANGE_THRESHOLD = 0.03; // Changement de prix acceptable (3%)
 
 
+
+
 const historicalPricesCache = {};
-
-async function scanSerum() {
-    try {
-        const currentTime = Date.now();
-        let bids, asks;
-
-        // Vérifiez si les données sont en cache et encore valides
-        if (serumCache.market && (currentTime - serumCache.timestamp < CACHE_EXPIRATION_TIME)) {
-            console.log("Utilisation des données mises en cache pour Serum.");
-            bids = serumCache.market.bids;
-            asks = serumCache.market.asks;
-        } else {
-            // Chargez les données du marché Serum depuis la blockchain
-        const market = await Market.load(connection, SERUM_MARKET_ADDRESS, {}, '');
-			        console.log(`Marché chargé : ${market.address.toBase58()}`);
-
-            bids = await market.loadBids(connection);
-            asks = await market.loadAsks(connection);
-
-            console.log(`Serum Market Loaded: ${market.address.toBase58()}`);
-            console.log(`Bids: ${JSON.stringify(bids.getL2(5))}`); // Affiche les 5 meilleures offres
-            console.log(`Asks: ${JSON.stringify(asks.getL2(5))}`); // Affiche les 5 meilleures demandes
-
-            // Mettre à jour le cache
-            serumCache.market = {
-                bids: bids,
-                asks: asks,
-            };
-            serumCache.timestamp = Date.now();
-        }
-
-        // Calculez la liquidité totale des 5 meilleures offres et demandes
-        const totalBidLiquidity = bids.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
-        const totalAskLiquidity = asks.getL2(5).reduce((total, [price, size]) => total + size.toNumber(), 0);
-
-        // Vérifiez si la liquidité est suffisante
-        if (totalBidLiquidity < MIN_LIQUIDITY_THRESHOLD || totalAskLiquidity < MIN_LIQUIDITY_THRESHOLD) {
-            console.log(`Liquidité insuffisante sur le marché ${SERUM_MARKET_ADDRESS}. Bid: ${totalBidLiquidity}, Ask: ${totalAskLiquidity}`);
-            return; // Sortir si la liquidité est insuffisante
-        }
-
-        const pair = { tokenA: 'SOL', tokenB: 'SOL' }; // Définir la paire ici
-
-
-        // Vérifier s'il existe une opportunité de front-running
-        const potentialFrontRun = await checkForSerumOpportunity(bids, asks, pair);
-        if (potentialFrontRun) {
-            console.log("Opportunité de front-run détectée:", potentialFrontRun);
-            await executeFrontRun(potentialFrontRun, 'serum', market);
-        } else {
-            console.log("Aucune opportunité de front-run détectée.");
-        }
-    } catch (error) {
-        console.error("Erreur lors du scan du marché Serum:", error);
-    }
-}
-
 
 async function scanRaydium() {
     try {
@@ -225,39 +164,6 @@ async function scanOrca() {
     }
 }
 
-
-async function checkForSerumOpportunity(bids, asks, pair) {
-    const highestBid = bids.getL2(1)[0]; // Meilleure offre
-    const lowestAsk = asks.getL2(1)[0]; // Meilleure demande
-
-    if (highestBid && lowestAsk) {
-        if (highestBid.price > lowestAsk.price) {
-            console.log(`Opportunité de front-running détectée sur Serum! Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
-
-            const prices = await getHistoricalPrices(pair);  // Récupérer les prix historiques pour la paire
-            console.log('Historical Prices:', prices);
-            const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
-
-            if (marketSignal === "buy") {
-                console.log(`Opportunité d'achat détectée sur Serum! Prix: ${lowestAsk.price}`);
-                return {
-                    price: lowestAsk.price, // Prix à utiliser pour la transaction de front-run
-                    amount: 1, // Quantité à acheter (ajuste selon tes besoins)
-                };
-            } else {
-                console.log(`Signal d'achat non détecté sur Serum.`);
-            }
-        } else {
-            console.log(`Aucune opportunité de front-running. Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
-        }
-    } else {
-        console.log("Pas assez de données pour détecter une opportunité de front-running.");
-    }
-
-    return null;
-}
-
-
 async function checkForRaydiumOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
 
@@ -351,23 +257,6 @@ async function executeFrontRun(order, dex, marketOrPair) {
     let transaction;
 
     switch (dex) {
-        case 'serum':
-			const market = marketOrPair;
-			const openOrdersAccount = await OpenOrders.findForMarketAndOwner(
-				connection,
-				market.address,
-				KEYPAIR.publicKey
-			);
-
-			if (!openOrdersAccount || openOrdersAccount.length === 0) {
-				console.error('Open orders account introuvable');
-				return;
-			}
-
-			// Appel de la fonction executeSerumSwap
-			await executeSerumSwap(market, purchaseAmount, order.price);
-			break;
-
         case 'raydium':
 			const solMint = new PublicKey('So11111111111111111111111111111111111111112'); // Adresse du token SOL
 			transaction = await executeRaydiumSwap(purchaseAmount, 0, solMint, solMint); // Swap SOL/SOL sur Raydium
@@ -541,107 +430,6 @@ async function executeOrcaSwap(amountIn, fromMint, toMint) {
     }
 }
 
-async function executeSerumSwap(marketOrPair, purchaseAmount, orderPrice) {
-    try {
-        const market = marketOrPair;
-
-        const openOrdersAccount = await OpenOrders.findForMarketAndOwner(
-            connection,
-            market.address,
-            KEYPAIR.publicKey
-        );
-
-        if (!openOrdersAccount || openOrdersAccount.length === 0) {
-            console.error('Compte des ordres ouverts introuvable');
-            return;
-        }
-
-        if (!orderPrice || orderPrice <= 0) {
-            console.error('Prix invalide pour l\'ordre');
-            return;
-        }
-        if (!purchaseAmount || purchaseAmount <= 0) {
-            console.error('Montant d\'achat invalide');
-            return;
-        }
-
-        const transaction = new Transaction().add(
-            market.makePlaceOrderInstruction(
-                connection,
-                {
-                    owner: KEYPAIR.publicKey,
-                    payer: market.quoteWallet, // Compte pour les fonds
-                    side: 'buy',
-                    price: orderPrice,
-                    size: purchaseAmount, // Utilise le montant d'achat
-                    orderType: 'limit',
-                    clientId: new BN(Date.now()), // ID client pour la traçabilité
-                    openOrdersAddress: openOrdersAccount[0].address, // Assurez-vous que cet index est correct
-                }
-            )
-        );
-
-        const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
-        await connection.confirmTransaction(signedTransaction);
-        console.log('Ordre d\'achat placé avec succès :', signedTransaction);
-
-        const initialPrice = orderPrice; // Le prix initial est celui que vous avez fixé
-        let newPrice;
-        const maxRetries = 10; // Nombre maximum de réessais
-        let attempts = 0;
-
-        while (attempts < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
-            newPrice = await market.loadBestBid(); // Obtenez le nouveau prix (ou un autre moyen de vérifier le prix)
-            console.log('Vérification du prix... Nouveau prix:', newPrice);
-
-            if (newPrice > initialPrice) {
-                console.log('Le prix a augmenté, prêt à vendre.');
-                break; // Sortir de la boucle si le prix a augmenté
-            } else {
-                console.log('Le prix n\'a pas encore augmenté, réessai...');
-                attempts++;
-            }
-        }
-
-        if (newPrice <= initialPrice) {
-            console.log('Le prix n\'a pas augmenté après plusieurs essais, vente annulée.');
-            return {
-                buyTransaction: signedTransaction,
-                sellTransaction: null, // Aucun vente n'a eu lieu
-            };
-        }
-
-        const sellTransaction = new Transaction().add(
-            market.makePlaceOrderInstruction(
-                connection,
-                {
-                    owner: KEYPAIR.publicKey,
-                    payer: market.quoteWallet, // Compte pour les fonds
-                    side: 'sell',
-                    price: newPrice, // Vendre au nouveau prix
-                    size: purchaseAmount, // Vendre le montant acheté
-                    orderType: 'limit',
-                    clientId: new BN(Date.now()), // ID client pour la traçabilité
-                    openOrdersAddress: openOrdersAccount[0].address, // Assurez-vous que cet index est correct
-                }
-            )
-        );
-
-        const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
-        await connection.confirmTransaction(signedSellTransaction);
-        console.log('Ordre de vente exécuté avec succès :', signedSellTransaction);
-
-        return {
-            buyTransaction: signedTransaction,
-            sellTransaction: signedSellTransaction, // Retourner aussi la vente
-        }; 
-    } catch (error) {
-        console.error('Erreur lors du placement de l\'ordre :', error);
-    }
-}
-
-
 function calculateWMA(prices, period) {
     const weights = Array.from({ length: period }, (_, i) => i + 1); // [1, 2, ..., period]
     const weightedPrices = prices.slice(-period).map((price, index) => price * weights[index]);
@@ -735,9 +523,8 @@ async function getHistoricalPrices(pair, days = 30) {
 
 async function mainLoop() {
     while (true) {
-        await scanSerum();
         await scanRaydium();
-        await scanOrca();
+        //await scanOrca();
         await new Promise(resolve => setTimeout(resolve, 10000)); // Pause de 10 secondes avant le prochain scan
     }
 }
