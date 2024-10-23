@@ -86,33 +86,47 @@ async function scanSerum() {
 async function scanRaydium() {
     try {
         const currentTime = Date.now();
+        let pairs;
+
+        // Vérifiez si les données sont en cache et encore valides
         if (raydiumCache.data && (currentTime - raydiumCache.timestamp < CACHE_EXPIRATION_TIME)) {
             console.log("Utilisation des données mises en cache.");
-            var pairs = raydiumCache.data; // Utiliser les données mises en cache
+            pairs = raydiumCache.data; // Utiliser les données mises en cache
         } else {
+            // Charger les données de l'API Raydium
             const response = await axios.get(RAYDIUM_API_URL);
             if (response.status !== 200) {
                 console.error(`Erreur de l'API Raydium: ${response.status}`);
                 return;
             }
+
+            // Vérifiez si les données reçues sont valides
             if (!response.data || !Array.isArray(response.data)) {
                 console.error("Données invalides reçues de l'API Raydium");
                 return;
             }
+
+            // Filtrer les paires pour ne garder que celles qui contiennent SOL
             pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
             console.log(`Raydium Pairs Loaded: ${pairs.length}`);
+
+            // Mettre à jour le cache
             raydiumCache.data = pairs;
             raydiumCache.timestamp = Date.now();
         }
 
-        const limit = pLimit(5); // Limite à 5 exécutions simultanées
+        // Limiter le nombre d'exécutions simultanées à 5
+        const limit = pLimit(5);
         await Promise.all(pairs.map(pair => limit(async () => {
             const totalLiquidity = pair.liquidity || 0; 
+
+            // Vérifiez si la liquidité est suffisante
             if (totalLiquidity < MIN_LIQUIDITY_THRESHOLD) {
-                console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}`);
+                console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}. Liquidité: ${totalLiquidity}`);
                 return; 
             }
 
+            // Vérifier s'il existe une opportunité de front-running
             const potentialFrontRun = checkForRaydiumOpportunity(pair, thresholds);
             if (potentialFrontRun) {
                 await executeFrontRun(potentialFrontRun, 'raydium', pair);
@@ -125,6 +139,7 @@ async function scanRaydium() {
         console.error("Erreur en scannant Raydium:", error);
     }
 }
+
 
 async function scanOrca() {
     try {
