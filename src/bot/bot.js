@@ -9,6 +9,7 @@ const { Market, OpenOrders } = require('@project-serum/serum');
 const axios = require('axios');
 const BN = require('bn.js');
 const pLimit = require('p-limit');
+const bs58 = require('bs58');
 
 const raydiumCache = {};
 const serumCache = {};
@@ -17,7 +18,8 @@ const CACHE_EXPIRATION_TIME = 300000; // 5 minutes en millisecondes
 
 // Configuration
 const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-const PRIVATE_KEY = Uint8Array.from([/* insère ici ta clé privée en format Uint8Array */]);
+const privateKeyBase58 = process.env.PRIVATE_KEY;
+const PRIVATE_KEY = bs58.decode(privateKeyBase58);
 const KEYPAIR = Keypair.fromSecretKey(PRIVATE_KEY);
 const SERUM_MARKET_ADDRESS = new PublicKey('9wFFe2ecmB1nPuU5H9xqg6d9eM6NLpS2eSCJih1t8TgP'); // Remplace par l'adresse de ton marché Serum
 const RAYDIUM_API_URL = 'https://api.raydium.io/pairs'; // URL API de Raydium
@@ -25,6 +27,7 @@ const ORCA_API_URL = 'https://api.orca.so/v1/pairs'; // URL API d'Orca
 const { Orca, Network } = require('@orca-so/sdk');
 const MIN_LIQUIDITY_THRESHOLD = 500; // Liquidité minimum pour déclencher une action
 const PRICE_CHANGE_THRESHOLD = 0.03; // Changement de prix acceptable (3%)
+
 
 const historicalPricesCache = {};
 
