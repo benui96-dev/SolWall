@@ -663,8 +663,9 @@ async function analyzeMarketData(prices) {
     return null;  // Pas de signal clair de trading
 }
 
-async function getHistoricalPrices(coinId, days = 30) {
-    const cacheKey = `${coinId}_${days}`; // Créer une clé unique pour chaque coin et période
+async function getHistoricalPrices(pair, days = 30) {
+    const { tokenA, tokenB } = pair; // Extraire tokenA et tokenB de la paire
+    const cacheKey = `${tokenA}_${tokenB}_${days}`; // Créer une clé unique pour le cache
     const cachedPrices = historicalPricesCache[cacheKey]; // Vérifier si les prix sont déjà dans le cache
 
     if (cachedPrices) {
@@ -672,27 +673,35 @@ async function getHistoricalPrices(coinId, days = 30) {
         return cachedPrices; // Retourner les prix du cache s'ils existent
     }
 
-    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
-
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+        // Appel API pour tokenA
+        const responseA = await fetch(`https://api.coingecko.com/api/v3/coins/${tokenA}/market_chart?vs_currency=usd&days=${days}&interval=daily`);
+        if (!responseA.ok) {
+            throw new Error(`HTTP error for ${tokenA}! Status: ${responseA.status}`);
         }
-        const data = await response.json();
-        // Extraire les prix de la réponse
-        const prices = data.prices.map(price => price[1]); // Chaque élément contient [timestamp, price]
+        const dataA = await responseA.json();
+        const pricesA = dataA.prices.map(price => price[1]); // Extraire les prix de tokenA
+
+        // Appel API pour tokenB
+        const responseB = await fetch(`https://api.coingecko.com/api/v3/coins/${tokenB}/market_chart?vs_currency=usd&days=${days}&interval=daily`);
+        if (!responseB.ok) {
+            throw new Error(`HTTP error for ${tokenB}! Status: ${responseB.status}`);
+        }
+        const dataB = await responseB.json();
+        const pricesB = dataB.prices.map(price => price[1]); // Extraire les prix de tokenB
 
         // Stocker les prix dans le cache
-        historicalPricesCache[cacheKey] = prices;
+        const combinedPrices = { tokenA: pricesA, tokenB: pricesB };
+        historicalPricesCache[cacheKey] = combinedPrices;
+
         console.log('Fetched and cached prices for:', cacheKey);
-        
-        return prices;
+        return combinedPrices;
     } catch (error) {
         console.error('Error fetching historical prices:', error);
-        return []; // Retourner un tableau vide en cas d'erreur
+        return {}; // Retourner un objet vide en cas d'erreur
     }
 }
+
 
 async function mainLoop() {
     while (true) {
