@@ -69,8 +69,11 @@ async function scanSerum() {
             return; // Sortir si la liquidité est insuffisante
         }
 
+        const pair = { tokenA: 'SOL', tokenB: 'SOL' }; // Définir la paire ici
+
+
         // Vérifier s'il existe une opportunité de front-running
-        const potentialFrontRun = checkForSerumOpportunity(bids, asks);
+        const potentialFrontRun = await checkForSerumOpportunity(bids, asks, pair);
         if (potentialFrontRun) {
             console.log("Opportunité de front-run détectée:", potentialFrontRun);
             await executeFrontRun(potentialFrontRun, 'serum', market);
@@ -193,7 +196,7 @@ async function scanOrca() {
 }
 
 
-async function checkForSerumOpportunity(bids, asks, thresholds) {
+async function checkForSerumOpportunity(bids, asks, pair) {
     const highestBid = bids.getL2(1)[0]; // Meilleure offre
     const lowestAsk = asks.getL2(1)[0]; // Meilleure demande
 
@@ -201,7 +204,7 @@ async function checkForSerumOpportunity(bids, asks, thresholds) {
         if (highestBid.price > lowestAsk.price) {
             console.log(`Opportunité de front-running détectée sur Serum! Offre: ${highestBid.price}, Demande: ${lowestAsk.price}`);
 
-            const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
+            const prices = await getHistoricalPrices(pair);  // Récupérer les prix historiques pour la paire
             console.log('Historical Prices:', prices);
             const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
 
@@ -223,6 +226,7 @@ async function checkForSerumOpportunity(bids, asks, thresholds) {
 
     return null;
 }
+
 
 async function checkForRaydiumOpportunity(pair, thresholds) {
     const { liquidity, price } = pair; // Liquidité de la paire
