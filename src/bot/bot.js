@@ -1,532 +1,200 @@
+require('dotenv').config();
+const axios = require('axios');
+const {
+  Connection,
+  Transaction,
+  sendAndConfirmTransaction,
+} = require('@solana/web3.js');
+const { getOrca, Network } = require('@orca-so/sdk');
+const { getRaydium } = require('./raydium-sdk'); // Assurez-vous d'importer votre SDK Raydium ici
 
+const connection = new Connection(clusterApiUrl(process.env.NETWORK), 'confirmed');
+const LIQUIDITY_THRESHOLD = 1000;
 
+async function main() {
+  const solPairs = await scanPairs();
+  if (solPairs.length === 0) {
+    console.log('Aucune paire SOL avec suffisamment de liquidité trouvée.');
+    return;
+  }
 
-import pLimit from 'p-limit';
-
-
-
-import axios from 'axios';
-import bs58 from 'bs58';
-import dotenv from 'dotenv';
-import { Network } from '@orca-so/sdk';
-
-import { Keypair, Connection, PublicKey } from '@solana/web3.js'; // Ajoutez PublicKey ici
-
-
-
-dotenv.config();
-
-const raydiumCache = {};
-const orcaCache = {};
-const CACHE_EXPIRATION_TIME = 300000; // 5 minutes en millisecondes
-
-// Configuration
-const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-
-
-
-// Récupérer la clé privée depuis les variables d'environnement
-const privateKeyBase58 = process.env.PRIVATE_KEY;
-
-if (!privateKeyBase58) {
-    throw new Error('La clé privée n\'est pas définie dans l\'environnement. Vérifiez votre fichier .env.');
+  for (const pair of solPairs) {
+    await performSandwich(pair);
+  }
 }
 
-// Décodez la clé privée Base58
-const PRIVATE_KEY = bs58.decode(privateKeyBase58);
-
-// Créez le Keypair
-const KEYPAIR = Keypair.fromSecretKey(PRIVATE_KEY);
-
-// Vérifiez le Keypair
-console.log(`Keypair créé : ${KEYPAIR.publicKey.toBase58()}`);
-
-
-
-
-
-const RAYDIUM_API_URL = 'https://api.raydium.io/pairs'; // URL API de Raydium
-const ORCA_API_URL = 'https://api.orca.so/v1/pairs'; // URL API d'Orca
-const MIN_LIQUIDITY_THRESHOLD = 500; // Liquidité minimum pour déclencher une action
-const PRICE_CHANGE_THRESHOLD = 0.03; // Changement de prix acceptable (3%)
-
-
-
-
-const historicalPricesCache = {};
-
-async function scanRaydium() {
-    try {
-        const currentTime = Date.now();
-        let pairs;
-
-        // Vérifiez si les données sont en cache et encore valides
-        if (raydiumCache.data && (currentTime - raydiumCache.timestamp < CACHE_EXPIRATION_TIME)) {
-            console.log("Utilisation des données mises en cache.");
-            pairs = raydiumCache.data; // Utiliser les données mises en cache
-        } else {
-            // Charger les données de l'API Raydium
-            const response = await axios.get(RAYDIUM_API_URL);
-            if (response.status !== 200) {
-                console.error(`Erreur de l'API Raydium: ${response.status}`);
-                return;
-            }
-
-            // Vérifiez si les données reçues sont valides
-            if (!response.data || !Array.isArray(response.data)) {
-                console.error("Données invalides reçues de l'API Raydium");
-                return;
-            }
-
-            // Filtrer les paires pour ne garder que celles qui contiennent SOL
-            pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
-            console.log(`Raydium Pairs Loaded: ${pairs.length}`);
-
-            // Mettre à jour le cache
-            raydiumCache.data = pairs;
-            raydiumCache.timestamp = Date.now();
-        }
-
-        // Limiter le nombre d'exécutions simultanées à 5
-        const limit = pLimit(5);
-        await Promise.all(pairs.map(pair => limit(async () => {
-            const totalLiquidity = pair.liquidity || 0; 
-
-            // Vérifiez si la liquidité est suffisante
-            if (totalLiquidity < MIN_LIQUIDITY_THRESHOLD) {
-                console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}. Liquidité: ${totalLiquidity}`);
-                return; 
-            }
-
-            // Vérifier s'il existe une opportunité de front-running
-            const potentialFrontRun = checkForRaydiumOpportunity(pair, thresholds);
-            if (potentialFrontRun) {
-                await executeFrontRun(potentialFrontRun, 'raydium', pair);
-                console.log(`Front-run exécuté pour la paire ${pair.tokenA}/${pair.tokenB}`);
-            } else {
-                console.log(`Aucune opportunité de front-running pour ${pair.tokenA}/${pair.tokenB}`);
-            }
-        })));
-    } catch (error) {
-        console.error("Erreur en scannant Raydium:", error);
-    }
+async function scanPairs() {
+  const raydiumPairs = await getRaydiumPairs();
+  const orcaPairs = await getOrcaPairs();
+  const allPairs = [...raydiumPairs, ...orcaPairs];
+  return allPairs.filter(pair => pair.baseMint === 'So11111111111111111111111111111111111111112'); // Mint SOL
 }
 
-
-async function scanOrca() {
-    try {
-        const currentTime = Date.now();
-        let pairs;
-
-        // Vérifiez si les données sont en cache et encore valides
-        if (orcaCache.data && (currentTime - orcaCache.timestamp < CACHE_EXPIRATION_TIME)) {
-            console.log("Utilisation des données mises en cache pour Orca.");
-            pairs = orcaCache.data;
-        } else {
-            // Charger les données de l'API Orca
-            const response = await axios.get(ORCA_API_URL);
-
-            // Vérifiez si les données reçues sont valides
-            if (!response.data || !Array.isArray(response.data)) {
-                console.error("Données invalides reçues de l'API Orca");
-                return;
-            }
-
-            // Filtrer les paires pour ne garder que celles qui contiennent SOL
-            pairs = response.data.filter(pair => pair.tokenA === 'SOL' || pair.tokenB === 'SOL');
-            orcaCache.data = pairs;
-            orcaCache.timestamp = Date.now();
-
-            console.log(`Orca Pairs Loaded: ${pairs.length}`);
-        }
-
-        // Itérer sur les paires pour vérifier les opportunités de front-running
-        for (const pair of pairs) {
-            const totalLiquidity = pair.liquidity || 0; // Assurez-vous que 'liquidity' est défini dans l'objet `pair`
-
-            // Vérifiez si la liquidité est suffisante
-            if (totalLiquidity < MIN_LIQUIDITY_THRESHOLD) {
-                console.log(`Liquidité insuffisante pour la paire ${pair.tokenA}/${pair.tokenB}. Liquidité: ${totalLiquidity}`);
-                continue; // Passer à la prochaine paire
-            }
-
-            // Vérifier s'il existe une opportunité de front-running
-            const potentialFrontRun = checkForOrcaOpportunity(pair, thresholds);
-            if (potentialFrontRun) {
-                await executeFrontRun(potentialFrontRun, 'orca', pair);
-                console.log(`Front-run exécuté pour la paire ${pair.tokenA}/${pair.tokenB}`);
-            } else {
-                console.log(`Aucune opportunité de front-running pour ${pair.tokenA}/${pair.tokenB}`);
-            }
-        }
-    } catch (error) {
-        console.error("Erreur en scannant Orca:", error);
-    }
+async function getRaydiumPairs() {
+  const response = await axios.get('https://api.raydium.io/pairs');
+  return response.data.data;
 }
 
-async function checkForRaydiumOpportunity(pair, thresholds) {
-    const { liquidity, price } = pair; // Liquidité de la paire
-
-    if (liquidity < MIN_LIQUIDITY_THRESHOLD) {
-        console.log(`Liquidité insuffisante pour ${pair.name}`);
-        return null;
-    }
-
-    const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
-    const priceChange = Math.abs(price - previousPrice) / previousPrice;
-
-    if (priceChange > PRICE_CHANGE_THRESHOLD) {
-        console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
-
-        const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
-        console.log('Historical Prices:', prices);
-
-        const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
-
-        if (marketSignal === "buy") {
-            console.log(`Opportunité d'achat détectée pour ${pair.name}`);
-            return {
-                action: "buy",
-                price: price,
-                amount: 1,  // Définit la quantité d'achat (à ajuster selon ta logique)
-            };
-        }
-    }
-
-    return null;
+async function getOrcaPairs() {
+  const response = await axios.get('https://api.orca.so/v1/pairs');
+  return response.data;
 }
 
-async function checkForOrcaOpportunity(pair, thresholds) {
-    const { liquidity, price } = pair; // Liquidité de la paire
-
-    if (liquidity < MIN_LIQUIDITY_THRESHOLD) {
-        console.log(`Liquidité insuffisante pour ${pair.name}`);
-        return null;
+async function filterLiquidPairs(solPairs) {
+  const liquidPairs = [];
+  for (const pair of solPairs) {
+    const liquidity = await getLiquidity(pair.address);
+    if (liquidity >= LIQUIDITY_THRESHOLD) {
+      liquidPairs.push(pair);
     }
-
-    const previousPrice = getPreviousPrice(pair); // À définir : fonction pour obtenir le prix précédent
-    const priceChange = Math.abs(price - previousPrice) / previousPrice;
-
-    if (priceChange > PRICE_CHANGE_THRESHOLD) {
-        console.log(`Opportunité de front-running détectée pour ${pair.name}: Prix actuel: ${price}, Prix précédent: ${previousPrice}`);
-
-        const prices = await getHistoricalPrices(pair);  // À définir : fonction pour récupérer les prix historiques
-        console.log('Historical Prices:', prices);
-        const marketSignal = await analyzeMarketData(prices);  // Analyse des indicateurs techniques (RSI, WMA)
-
-        if (marketSignal === "buy") {
-            console.log(`Opportunité d'achat détectée pour ${pair.name}`);
-            return {
-                action: "buy",
-                price: price,
-                amount: 1,  // Définit la quantité d'achat (à ajuster selon ta logique)
-            };
-        }
-    }
-
-    return null;
+  }
+  return liquidPairs;
 }
 
+async function getLiquidity(marketAddress) {
+  const raydiumResponse = await axios.get(`https://api.raydium.io/orderbook/${marketAddress}`);
+  const orcaResponse = await axios.get(`https://api.orca.so/v1/market/${marketAddress}`);
 
-const previousPrices = {};
-
-function getPreviousPrice(pair) {
-    const pairKey = `${pair.tokenA}-${pair.tokenB}`; // Génère une clé unique pour chaque paire
-
-    if (!previousPrices[pairKey]) {
-        previousPrices[pairKey] = [];
-        previousPrices[pairKey].push(pair.price);
-        return pair.price; // Retourne le prix actuel si pas de prix précédent
-    }
-
-    previousPrices[pairKey].push(pair.price);
-
-    if (previousPrices[pairKey].length > 10) {
-        previousPrices[pairKey].shift(); // Supprime le plus ancien prix
-    }
-
-    const sum = previousPrices[pairKey].reduce((acc, price) => acc + price, 0);
-    return sum / previousPrices[pairKey].length; // Retourne la moyenne des prix précédents
-}
-
-async function executeFrontRun(order, dex, marketOrPair) {
-    console.log(`Executing front-run transaction on ${dex} at price: ${order.price} for amount: ${order.amount}`);
-
-    const purchaseAmount = 0.1;
-
-    let transaction;
-
-    switch (dex) {
-        case 'raydium':
-			const solMint = new PublicKey('So11111111111111111111111111111111111111112'); // Adresse du token SOL
-			transaction = await executeRaydiumSwap(purchaseAmount, 0, solMint, solMint); // Swap SOL/SOL sur Raydium
-			break;
-
-		case 'orca':
-			const orcaSolMint = new PublicKey('So11111111111111111111111111111111111111112'); // Adresse du token SOL
-			transaction = await executeOrcaSwap(purchaseAmount, orcaSolMint, orcaSolMint); // Swap SOL/SOL sur Orca
-			break;
-
-        default:
-            console.error("DEX non reconnu");
-            return;
-    }
-
-    try {
-        const signature = await sendAndConfirmTransaction(connection, transaction, [KEYPAIR]);
-        console.log(`Transaction réussie avec le hash: ${signature}`);
-    } catch (error) {
-        console.error("Erreur lors de l'exécution de la transaction:", error);
-    }
-}
-
-async function executeRaydiumSwap(amountIn, amountOutMin, fromMint, toMint) {
-    const transaction = new Transaction();
-
-    const { swap, getPool } = require('@raydium-io/raydium-sdk'); // Assurez-vous d'avoir le bon package pour Raydium
-    const pool = await getPool(fromMint.toBase58(), toMint.toBase58());
-
-    if (!pool) {
-        console.error("Pool introuvable pour la paire donnée");
-        return;
-    }
-
-    const swapInstruction = swap({
-        userPublicKey: KEYPAIR.publicKey,
-        amountIn,
-        amountOutMin,
-        fromMint,
-        toMint,
-        pool: pool.address, // Utiliser l'adresse du pool
-        slippage: 0.5, // Ajustez selon votre tolérance au risque
+  let totalLiquidity = 0;
+  // Calculer la liquidité de Raydium
+  if (raydiumResponse.data.data) {
+    const bids = raydiumResponse.data.data.bids;
+    const asks = raydiumResponse.data.data.asks;
+    bids.forEach(bid => {
+      totalLiquidity += bid.size;
     });
-
-    transaction.add(swapInstruction);
-
-    const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
-    await connection.confirmTransaction(signedTransaction);
-    console.log('Swap d\'achat exécuté avec succès:', signedTransaction);
-
-    const initialPrice = await pool.getPrice(); // Obtenez le prix initial
-    let newPrice;
-    const maxRetries = 10; // Nombre maximum de réessais
-    let attempts = 0;
-
-    while (attempts < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
-        newPrice = await pool.getPrice(); // Obtenez le nouveau prix après l'achat
-        console.log('Vérification du prix... Nouveau prix:', newPrice);
-
-        if (newPrice > initialPrice) {
-            console.log('Le prix a augmenté, prêt à vendre.');
-            break; // Sortir de la boucle si le prix a augmenté
-        } else {
-            console.log('Le prix n\'a pas encore augmenté, réessai...');
-            attempts++;
-        }
-    }
-
-    if (newPrice <= initialPrice) {
-        console.log('Le prix n\'a pas augmenté après plusieurs essais, vente annulée.');
-        return {
-            buyTransaction: signedTransaction,
-            sellTransaction: null, // Aucune vente n'a eu lieu
-        };
-    }
-
-    const amountOut = await pool.getAmountOut(amountIn); // Obtenez le montant à vendre basé sur l'achat
-    const sellTransaction = new Transaction();
-    const sellInstruction = swap({
-        userPublicKey: KEYPAIR.publicKey,
-        amountIn: amountOut, // Vendre le montant obtenu
-        amountOutMin,
-        fromMint: toMint, // Utiliser le mint de la devise achetée
-        toMint: fromMint, // Vendre vers le mint de la devise d'origine
-        pool: pool.address, // Utiliser l'adresse du pool
-        slippage: 0.5, // Ajustez selon vos besoins
+    asks.forEach(ask => {
+      totalLiquidity += ask.size;
     });
+  }
 
-    sellTransaction.add(sellInstruction);
+  // Calculer la liquidité d'Orca
+  if (orcaResponse.data) {
+    const bids = orcaResponse.data.bids;
+    const asks = orcaResponse.data.asks;
+    bids.forEach(bid => {
+      totalLiquidity += bid.size;
+    });
+    asks.forEach(ask => {
+      totalLiquidity += ask.size;
+    });
+  }
 
-    const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
-    await connection.confirmTransaction(signedSellTransaction);
-    console.log('Swap de vente exécuté avec succès:', signedSellTransaction);
-
-    return {
-        buyTransaction: signedTransaction,
-        sellTransaction: signedSellTransaction, // Retourner aussi la vente
-    }; 
+  return totalLiquidity;
 }
 
+async function performSandwich(pair) {
+  const wallet = /* Initialize your wallet here, e.g., using a keypair */;
+  const tokenMint = pair.baseMint;
+  const amountToBuy = /* Calculer la quantité à acheter */;
 
-async function executeOrcaSwap(amountIn, fromMint, toMint) {
-    try {
-        const orca = Orca.build({ network: Network.MAINNET, connection });
-        const pool = await orca.getPool(fromMint, toMint);
-
-        const transaction = new Transaction();
-        const swapInstruction = await pool.swap({
-            amountIn,
-            slippage: 0.5, // Ajustez en fonction de votre tolérance au risque
-            userPublicKey: KEYPAIR.publicKey,
-        });
-
-        transaction.add(swapInstruction);
-
-        const signedTransaction = await connection.sendTransaction(transaction, [KEYPAIR]);
-        
-        await connection.confirmTransaction(signedTransaction);
-        console.log('Swap d\'achat exécuté avec succès:', signedTransaction);
-
-        const initialPrice = await pool.getPrice(); // Obtenez le prix initial
-        let newPrice;
-        const maxRetries = 10; // Nombre maximum de réessais
-        let attempts = 0;
-
-        while (attempts < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes avant de vérifier
-            newPrice = await pool.getPrice(); // Obtenez le nouveau prix
-            console.log('Vérification du prix... Nouveau prix:', newPrice);
-
-            if (newPrice > initialPrice) {
-                console.log('Le prix a augmenté, prêt à vendre.');
-                break; // Sortir de la boucle si le prix a augmenté
-            } else {
-                console.log('Le prix n\'a pas encore augmenté, réessai...');
-                attempts++;
-            }
-        }
-
-        if (newPrice <= initialPrice) {
-            console.log('Le prix n\'a pas augmenté après plusieurs essais, vente annulée.');
-            return {
-                buyTransaction: signedTransaction,
-                sellTransaction: null, // Aucun vente n'a eu lieu
-            };
-        }
-
-        const amountOut = await pool.getAmountOut(amountIn); // Obtenez le montant de sortie basé sur l'achat
-        const sellTransaction = new Transaction();
-        const sellInstruction = await pool.swap({
-            amountIn: amountOut, // Vendre le montant obtenu
-            slippage: 0.5, // Ajustez selon vos besoins
-            userPublicKey: KEYPAIR.publicKey,
-        });
-
-        sellTransaction.add(sellInstruction);
-
-        const signedSellTransaction = await connection.sendTransaction(sellTransaction, [KEYPAIR]);
-
-        await connection.confirmTransaction(signedSellTransaction);
-        console.log('Swap de vente exécuté avec succès:', signedSellTransaction);
-
-        return {
-            buyTransaction: signedTransaction,
-            sellTransaction: signedSellTransaction, // Retourner aussi la vente
-        }; 
-    } catch (error) {
-        console.error('Erreur lors de l\'exécution du swap:', error);
-        throw error; // ou gérez l'erreur selon vos besoins
-    }
-}
-
-function calculateWMA(prices, period) {
-    const weights = Array.from({ length: period }, (_, i) => i + 1); // [1, 2, ..., period]
-    const weightedPrices = prices.slice(-period).map((price, index) => price * weights[index]);
+  try {
+    // Déterminer le DEX à utiliser (vous pouvez personnaliser cette logique)
+    const dex = /* 'orca' ou 'raydium', selon votre logique */;
     
-    const wma = weightedPrices.reduce((acc, price) => acc + price, 0) / weights.reduce((acc, weight) => acc + weight, 0);
-    return wma;
+    const currentPrice = await getCurrentPrice(pair.address);
+    const slippage = 0.01; // 1% de slippage
+    const minAmountOut = (1 - slippage) * amountToBuy * currentPrice;
+
+    console.log(`Achat de ${amountToBuy} ${tokenMint} sur ${dex} pour la paire: ${pair.address}`);
+    await buyToken(wallet, tokenMint, amountToBuy, minAmountOut, pair.address, dex);
+
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Pause de 5 secondes
+
+    const newPrice = await getCurrentPrice(pair.address);
+    const amountToSell = /* Calculer la quantité à vendre */;
+    const minAmountOutSell = (1 - slippage) * amountToSell * newPrice;
+
+    console.log(`Vente de ${amountToSell} ${tokenMint} sur ${dex} pour la paire: ${pair.address}`);
+    await sellToken(wallet, tokenMint, amountToSell, minAmountOutSell, pair.address, dex);
+
+  } catch (error) {
+    console.error('Erreur lors de l\'exécution du sandwich:', error);
+  }
 }
 
-function calculateRSI(prices, period) {
-    if (prices.length < period) return null;
-
-    let gains = 0;
-    let losses = 0;
-
-    for (let i = 1; i < period; i++) {
-        const change = prices[i] - prices[i - 1];
-        if (change > 0) {
-            gains += change;
-        } else {
-            losses -= change; // perdre est positif
-        }
+async function buyToken(wallet, tokenMint, amount, minAmountOut, pairAddress, dex) {
+  let transaction = new Transaction();
+  try {
+    if (dex === 'orca') {
+      const orca = getOrca(connection, { cluster: process.env.NETWORK === 'mainnet-beta' ? Network.MAINNET : Network.DEVNET });
+      const pool = orca.getPool(pairAddress);
+      const order = pool.makeSwap({
+        inputToken: pool.getTokenA(),
+        outputToken: pool.getTokenB(),
+        amountIn: amount,
+        slippage: 0.01,
+      });
+      transaction.add(order);
+      
+    } else if (dex === 'raydium') {
+      const raydium = getRaydium(connection);
+      const order = await raydium.swap({
+        wallet: wallet,
+        amountIn: amount,
+        minAmountOut: minAmountOut,
+        pairAddress: pairAddress,
+        slippage: 0.01,
+      });
+      transaction.add(order);
+      
+    } else {
+      throw new Error('DEX non supporté. Veuillez choisir entre "orca" et "raydium".');
     }
 
-    const averageGain = gains / period;
-    const averageLoss = losses / period;
+    const signature = await sendAndConfirmTransaction(connection, transaction, [wallet]);
+    console.log(`Achat réussi! Signature de la transaction: ${signature}`);
+    return signature;
 
-    if (averageLoss === 0) return 100; // éviter la division par zéro
-
-    const rs = averageGain / averageLoss;
-    const rsi = 100 - (100 / (1 + rs));
-
-    return rsi;
+  } catch (error) {
+    console.error('Erreur lors de l\'achat du token:', error);
+    throw error;
+  }
 }
 
-async function analyzeMarketData(prices) {
-    const wmaPeriod = 14;  // Période pour la WMA
-    const rsiPeriod = 14;  // Période pour le RSI
-
-    const wma = calculateWMA(prices, wmaPeriod);  // Fonction pour calculer la WMA
-    const rsi = calculateRSI(prices, rsiPeriod);  // Fonction pour calculer le RSI
-
-    console.log(`WMA: ${wma}, RSI: ${rsi}`);
-
-    if (rsi < 30) {
-        console.log("RSI indique une condition de survente - potentiel d'achat.");
-        return "buy";
+async function sellToken(wallet, tokenMint, amount, minAmountOut, pairAddress, dex) {
+  let transaction = new Transaction();
+  try {
+    if (dex === 'orca') {
+      const orca = getOrca(connection, { cluster: process.env.NETWORK === 'mainnet-beta' ? Network.MAINNET : Network.DEVNET });
+      const pool = orca.getPool(pairAddress);
+      const order = pool.makeSwap({
+        inputToken: pool.getTokenB(),
+        outputToken: pool.getTokenA(),
+        amountIn: amount,
+        slippage: 0.01,
+      });
+      transaction.add(order);
+      
+    } else if (dex === 'raydium') {
+      const raydium = getRaydium(connection);
+      const order = await raydium.swap({
+        wallet: wallet,
+        amountIn: amount,
+        minAmountOut: minAmountOut,
+        pairAddress: pairAddress,
+        slippage: 0.01,
+      });
+      transaction.add(order);
+      
+    } else {
+      throw new Error('DEX non supporté. Veuillez choisir entre "orca" et "raydium".');
     }
 
-    return null;  // Pas de signal clair de trading
+    const signature = await sendAndConfirmTransaction(connection, transaction, [wallet]);
+    console.log(`Vente réussie! Signature de la transaction: ${signature}`);
+    return signature;
+
+  } catch (error) {
+    console.error('Erreur lors de la vente du token:', error);
+    throw error;
+  }
 }
 
-async function getHistoricalPrices(pair, days = 30) {
-    const { tokenA, tokenB } = pair; // Extraire tokenA et tokenB de la paire
-    const cacheKey = `${tokenA}_${tokenB}_${days}`; // Créer une clé unique pour le cache
-    const cachedPrices = historicalPricesCache[cacheKey]; // Vérifier si les prix sont déjà dans le cache
-
-    if (cachedPrices) {
-        console.log('Returning cached prices for:', cacheKey);
-        return cachedPrices; // Retourner les prix du cache s'ils existent
-    }
-
-    try {
-        // Appel API pour tokenA
-        const responseA = await fetch(`https://api.coingecko.com/api/v3/coins/${tokenA}/market_chart?vs_currency=usd&days=${days}&interval=daily`);
-        if (!responseA.ok) {
-            throw new Error(`HTTP error for ${tokenA}! Status: ${responseA.status}`);
-        }
-        const dataA = await responseA.json();
-        const pricesA = dataA.prices.map(price => price[1]); // Extraire les prix de tokenA
-
-        // Appel API pour tokenB
-        const responseB = await fetch(`https://api.coingecko.com/api/v3/coins/${tokenB}/market_chart?vs_currency=usd&days=${days}&interval=daily`);
-        if (!responseB.ok) {
-            throw new Error(`HTTP error for ${tokenB}! Status: ${responseB.status}`);
-        }
-        const dataB = await responseB.json();
-        const pricesB = dataB.prices.map(price => price[1]); // Extraire les prix de tokenB
-
-        // Stocker les prix dans le cache
-        const combinedPrices = { tokenA: pricesA, tokenB: pricesB };
-        historicalPricesCache[cacheKey] = combinedPrices;
-
-        console.log('Fetched and cached prices for:', cacheKey);
-        return combinedPrices;
-    } catch (error) {
-        console.error('Error fetching historical prices:', error);
-        return {}; // Retourner un objet vide en cas d'erreur
-    }
+async function getCurrentPrice(pairAddress) {
+  const response = await axios.get(`https://api.raydium.io/orderbook/${pairAddress}`);
+  const price = response.data.data.price; // Ajustez selon la structure de l'API
+  return price;
 }
 
-
-async function mainLoop() {
-    while (true) {
-        await scanRaydium();
-        //await scanOrca();
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Pause de 10 secondes avant le prochain scan
-    }
-}
-
-mainLoop().catch(console.error);
+main().catch(console.error);
