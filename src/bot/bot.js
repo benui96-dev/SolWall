@@ -66,11 +66,22 @@ async function handleLargePurchase(amount) {
   }
 
   for (const pair of solPairs) {
-    await performSandwich(pair, amount); // Passer la quantité achetée
+    const dex = determineDex(pair); // Déterminez le DEX à utiliser pour la paire
+    await performSandwich(pair, amount, dex); // Passer la quantité achetée
   }
 
   isTransactionInProgress = false;
 }
+
+function determineDex(pair) {
+    // Logique pour déterminer quel DEX utiliser (par exemple, en fonction de la paire ou de l'adresse)
+    if (pair.dex === 'orca') {
+      return 'orca';
+    } else if (pair.dex === 'raydium') {
+      return 'raydium';
+    }
+    return null; // Ou une valeur par défaut
+  }
 
 async function scanPairs() {
   const raydiumPairs = await getRaydiumPairs();
@@ -110,7 +121,7 @@ async function getLiquidity(marketAddress) {
   return totalLiquidity;
 }
 
-async function performSandwich(pair, amountToBuy) {
+async function performSandwich(pair, amountToBuy, dex) {
   const wallet = /* Initialisez votre portefeuille ici, par exemple, en utilisant un keypair */;
   const tokenMint = pair.baseMint;
 
