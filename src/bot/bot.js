@@ -2,25 +2,74 @@ require('dotenv').config();
 const axios = require('axios');
 const {
   Connection,
+  PublicKey,
+  clusterApiUrl,
   Transaction,
   sendAndConfirmTransaction,
 } = require('@solana/web3.js');
-const { getOrca, Network } = require('@orca-so/sdk');
-const { getRaydium } = require('./raydium-sdk'); // Assurez-vous d'importer votre SDK Raydium ici
+const { getOrca, Orca, Network } = require('@orca-so/sdk');
 
 const connection = new Connection(clusterApiUrl(process.env.NETWORK), 'confirmed');
-const LIQUIDITY_THRESHOLD = 1000;
+const LARGE_TRANSACTION_THRESHOLD = 5; // Seuil pour les gros achats en SOL
+let isTransactionInProgress = false;
+const CHECK_INTERVAL = 5000; // Intervalle de vérification en millisecondes
 
 async function main() {
+  // Démarrer le monitoring des paires
+  await monitorOrderBooks();
+}
+
+async function monitorOrderBooks() {
+  const solPairs = await scanPairs();
+
+  if (solPairs.length === 0) {
+    console.log('Aucune paire SOL trouvée.');
+    return;
+  }
+
+  setInterval(async () => {
+    for (const pair of solPairs) {
+      await checkOrderBook(pair);
+    }
+  }, CHECK_INTERVAL);
+}
+
+async function checkOrderBook(pair) {
+  try {
+    const orderBook = await getLiquidity(pair.address);
+
+    // Vérifiez les gros achats à partir des ordres
+    const largeBuyOrders = orderBook.bids.filter(order => order.size >= LARGE_TRANSACTION_THRESHOLD);
+
+    if (largeBuyOrders.length > 0) {
+      console.log(`Gros achats détectés sur la paire ${pair.address}:`, largeBuyOrders);
+      await handleLargePurchase(largeBuyOrders[0].size); // Passer la première grande commande détectée
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification du carnet d\'ordres:', error);
+  }
+}
+
+async function handleLargePurchase(amount) {
+  if (isTransactionInProgress) {
+    console.log('Une transaction est déjà en cours. Attendez qu\'elle se termine.');
+    return;
+  }
+
+  isTransactionInProgress = true;
+
   const solPairs = await scanPairs();
   if (solPairs.length === 0) {
     console.log('Aucune paire SOL avec suffisamment de liquidité trouvée.');
+    isTransactionInProgress = false;
     return;
   }
 
   for (const pair of solPairs) {
-    await performSandwich(pair);
+    await performSandwich(pair, amount); // Passer la quantité achetée
   }
+
+  isTransactionInProgress = false;
 }
 
 async function scanPairs() {
@@ -40,58 +89,34 @@ async function getOrcaPairs() {
   return response.data;
 }
 
-async function filterLiquidPairs(solPairs) {
-  const liquidPairs = [];
-  for (const pair of solPairs) {
-    const liquidity = await getLiquidity(pair.address);
-    if (liquidity >= LIQUIDITY_THRESHOLD) {
-      liquidPairs.push(pair);
-    }
-  }
-  return liquidPairs;
-}
-
 async function getLiquidity(marketAddress) {
   const raydiumResponse = await axios.get(`https://api.raydium.io/orderbook/${marketAddress}`);
   const orcaResponse = await axios.get(`https://api.orca.so/v1/market/${marketAddress}`);
 
-  let totalLiquidity = 0;
+  let totalLiquidity = { bids: [], asks: [] };
+
   // Calculer la liquidité de Raydium
   if (raydiumResponse.data.data) {
-    const bids = raydiumResponse.data.data.bids;
-    const asks = raydiumResponse.data.data.asks;
-    bids.forEach(bid => {
-      totalLiquidity += bid.size;
-    });
-    asks.forEach(ask => {
-      totalLiquidity += ask.size;
-    });
+    totalLiquidity.bids = raydiumResponse.data.data.bids;
+    totalLiquidity.asks = raydiumResponse.data.data.asks;
   }
 
   // Calculer la liquidité d'Orca
   if (orcaResponse.data) {
-    const bids = orcaResponse.data.bids;
-    const asks = orcaResponse.data.asks;
-    bids.forEach(bid => {
-      totalLiquidity += bid.size;
-    });
-    asks.forEach(ask => {
-      totalLiquidity += ask.size;
-    });
+    totalLiquidity.bids.push(...orcaResponse.data.bids);
+    totalLiquidity.asks.push(...orcaResponse.data.asks);
   }
 
   return totalLiquidity;
 }
 
-async function performSandwich(pair) {
-  const wallet = /* Initialize your wallet here, e.g., using a keypair */;
+async function performSandwich(pair, amountToBuy) {
+  const wallet = /* Initialisez votre portefeuille ici, par exemple, en utilisant un keypair */;
   const tokenMint = pair.baseMint;
-  const amountToBuy = /* Calculer la quantité à acheter */;
 
   try {
-    // Déterminer le DEX à utiliser (vous pouvez personnaliser cette logique)
     const dex = /* 'orca' ou 'raydium', selon votre logique */;
-    
+
     const currentPrice = await getCurrentPrice(pair.address);
     const slippage = 0.01; // 1% de slippage
     const minAmountOut = (1 - slippage) * amountToBuy * currentPrice;
@@ -102,7 +127,7 @@ async function performSandwich(pair) {
     await new Promise(resolve => setTimeout(resolve, 5000)); // Pause de 5 secondes
 
     const newPrice = await getCurrentPrice(pair.address);
-    const amountToSell = /* Calculer la quantité à vendre */;
+    const amountToSell = amountToBuy; // Vendre la même quantité achetée
     const minAmountOutSell = (1 - slippage) * amountToSell * newPrice;
 
     console.log(`Vente de ${amountToSell} ${tokenMint} sur ${dex} pour la paire: ${pair.address}`);
