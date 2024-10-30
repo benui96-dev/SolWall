@@ -92,7 +92,7 @@ export const getRecentMessages = async () => {
       return {
         message: memoInstruction ? memoInstruction.data.toString() : null,
         signature: signatureInfo.signature,
-        solscanLink: `https://solscan.io/tx/${signatureInfo.signature}?cluster=${process.env.REACT_APP_SOLANA_NETWORK}`,
+        solscanLink: `https://solscan.io/tx/${signatureInfo.signature}`,
       };
     })
   );
