@@ -49,19 +49,13 @@ const updatePlatformStats = async (newMessage) => {
 
 app.get('/messages', async (req, res) => {
   try {
-    const messages = await Message.findAll();
+    const messages = await Message.findAll({
+      order: [['id', 'DESC']],
+      limit: 100
+    });
     res.json(messages);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching messages' });
-  }
-});
-
-app.get('/messages/count', async (req, res) => {
-  try {
-    const messageCount = await Message.count();
-    res.json({ count: messageCount });
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching message count' });
   }
 });
 
@@ -79,6 +73,12 @@ app.post('/messages', async (req, res) => {
 
     io.emit('message', newMessage);
     res.status(201).json(newMessage);
+
+    const messages = await Message.findAll({
+      order: [['id', 'DESC']],
+      limit: 100
+    });
+    io.emit('allMessages', messages);
   } catch (error) {
     res.status(500).json({ error: 'Error adding message' });
   }
@@ -103,7 +103,10 @@ app.get('/:shortId', async (req, res) => {
 
 io.on('connection', async (socket) => {
   try {
-    const messages = await Message.findAll();
+    const messages = await Message.findAll({
+      order: [['id', 'DESC']],
+      limit: 100
+    });
     socket.emit('allMessages', messages);
 
     const stats = await PlatformStats.findOne({

@@ -98,7 +98,7 @@ const App = () => {
       try {
         const response = await fetch(process.env.REACT_APP_GET_MESSAGES);
         const data = await response.json();
-        setMessages(data.reverse());
+        setMessages(data);
       } catch (error) {
         console.error('Error retrieving messages and stats:', error);
       }
@@ -117,7 +117,7 @@ const App = () => {
     });
 
     socket.on('allMessages', (allMessages) => {
-      setMessages(allMessages.reverse());
+      setMessages(allMessages);
     });
 
     socket.on('platformStats', (stats) => {
@@ -275,7 +275,7 @@ const App = () => {
                 {loading ? (
                   <div className="loader" style={{ margin: '0 auto', width: '20px', height: '20px', border: '3px solid #f3f3f3', borderTop: '3px solid #9945FF', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                 ) : (
-                  'Send message'
+                  'Send message (1 $SWL)'
                 )}
               </button>
               {shortId && (
