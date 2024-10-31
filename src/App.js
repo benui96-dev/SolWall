@@ -278,7 +278,7 @@ const App = () => {
                   'Send message'
                 )}
               </button>
-              <p style={{ textAlign: 'center'}}><i>Estimated fee per msg: 0,000095 SOL (0.017$) + 1$SWL burned</i></p>
+              <p style={{ textAlign: 'center'}}><i>Estimated fee per msg: 0,000095 SOL (0.016$) + 1$SWL burned</i></p>
               <p style={{ textAlign: 'center'}}><i>We are in contact with Phantom to remove warn msg for transaction</i></p>
               {shortId && (
                 <p style={{ textAlign: 'center', marginTop: '10px' }}>
