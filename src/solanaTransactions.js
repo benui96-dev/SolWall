@@ -2,7 +2,7 @@ import { clusterApiUrl, Connection, PublicKey, Transaction, SystemProgram } from
 import { createBurnInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { MEMO_PROGRAM_ID } from '@solana/spl-memo';
 
-const connection = new Connection(clusterApiUrl(process.env.REACT_APP_SOLANA_NETWORK), 'confirmed');
+const connection = new Connection('https://solana-mainnet.api.syndica.io/api-key/3SJk4C4n4f7g2siuGUKP1zD18r4YLdfvLrkt5umhy2qp7rsZsawS1B9fxTi5qUuLpSvjjcUFJ1n9RengCUT4tvbV2Kt79TM9G6J', 'confirmed');
 
 const FEE_ADDRESS = new PublicKey(process.env.REACT_APP_FEE_ADDRESS);
 const TOKEN_MINT_ADDRESS = new PublicKey(process.env.REACT_APP_TOKEN_MINT_ADDRESS);
