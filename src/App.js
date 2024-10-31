@@ -261,7 +261,7 @@ const App = () => {
               </div>
               <button
                 onClick={handleSendTransaction}
-                disabled={!connected || visibleTextLength > 75 || publicKey.toBase58() !== 'H1NMRSnwo1jfqYr2qYgc9UKJ72uYFE1mtdrGVAyU3eth'}
+                disabled={!connected || visibleTextLength > 75 || publicKey.toBase58() !== '46yzQoy7Gr7GV1MwdrdcqKovEY1h3z2sKmtZbRpZverJ'}
                 style={{
                   padding: '10px',
                   backgroundColor: '#9945FF',
