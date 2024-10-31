@@ -178,7 +178,7 @@ const App = () => {
               loop
               muted
               className="app-logo"
-              style={{ width: '50%', margin: '-55px auto' }}
+              style={{ width: '50%', margin: '-70px auto' }}
             >
               <source src="/logo_animation.mp4" type="video/mp4" />
               Your browser does not support the video tag.
@@ -275,9 +275,10 @@ const App = () => {
                 {loading ? (
                   <div className="loader" style={{ margin: '0 auto', width: '20px', height: '20px', border: '3px solid #f3f3f3', borderTop: '3px solid #9945FF', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                 ) : (
-                  'Send message (1 $SWL)'
+                  'Send message'
                 )}
               </button>
+              <p style={{ textAlign: 'center'}}><i>Estimated fee per msg: 0,000145 SOL + 1$SWL burned / We are in contact with Phantom to remove warn msg for transaction</i></p>
               {shortId && (
                 <p style={{ textAlign: 'center', marginTop: '10px' }}>
                   Your link: <a href={shortId} target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>{shortId} <FontAwesomeIcon icon={faExternalLinkAlt} /></a>
