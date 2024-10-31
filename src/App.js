@@ -178,7 +178,7 @@ const App = () => {
               loop
               muted
               className="app-logo"
-              style={{ width: '50%', margin: '-70px auto' }}
+              style={{ width: '50%', margin: '-85px auto' }}
             >
               <source src="/logo_animation.mp4" type="video/mp4" />
               Your browser does not support the video tag.
@@ -278,7 +278,8 @@ const App = () => {
                   'Send message'
                 )}
               </button>
-              <p style={{ textAlign: 'center'}}><i>Estimated fee per msg: 0,000145 SOL + 1$SWL burned / We are in contact with Phantom to remove warn msg for transaction</i></p>
+              <p style={{ textAlign: 'center'}}><i>Estimated fee per msg: 0,000095 SOL (0.017$) + 1$SWL burned</i></p>
+              <p style={{ textAlign: 'center'}}><i>We are in contact with Phantom to remove warn msg for transaction</i></p>
               {shortId && (
                 <p style={{ textAlign: 'center', marginTop: '10px' }}>
                   Your link: <a href={shortId} target="_blank" rel="noopener noreferrer" style={{ color: '#9945FF' }}>{shortId} <FontAwesomeIcon icon={faExternalLinkAlt} /></a>

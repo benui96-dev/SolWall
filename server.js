@@ -32,7 +32,7 @@ const updatePlatformStats = async (newMessage) => {
     });
 
     const newMessageCount = (currentStats ? currentStats.messageCount : 0) + 1;
-    const newPlatformFees = (currentStats ? currentStats.platformFees : 0) + 0.0001;
+    const newPlatformFees = (currentStats ? currentStats.platformFees : 0) + 0.00005;
 
     await PlatformStats.create({
       platformFees: newPlatformFees,
