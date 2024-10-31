@@ -296,7 +296,7 @@ const App = () => {
       <div className='right-column'>
         <h2 style={{ textAlign: 'center', fontSize: '0.8em', marginBottom: '2px' }}>
           💬 Total number of messages: {messageCount}&nbsp;
-          💵 Platform has generated: {platformFees.toFixed(4)} SOL in fees
+          💵 Platform has generated: {platformFees.toFixed(5)} SOL in fees
         </h2>
         <div style={{
           flex: 1,
